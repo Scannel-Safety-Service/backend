@@ -1,13 +1,18 @@
-import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { Role } from '../../common/enums/role.enum';
 import { hashToken } from '../../shared/utils/hash.util';
+import { MailerService } from '../../shared/mailer/mailer.service';
 import { AuthRepository } from './auth.repository';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +20,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailerService: MailerService,
   ) {}
 
   async register(
@@ -133,6 +139,122 @@ export class AuthService {
     await this.authRepository.revokeRefreshToken(hashed).catch(() => {
       // Idempotency: ignore if token already revoked or not found
     });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
+    const user = await this.authRepository.findUserByEmail(dto.email);
+    if (!user) {
+      // Anti-enumeration: return success even if user not found
+      return;
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    await this.authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
+    await this.mailerService.sendPasswordResetEmail(user.email, token);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const tokenHash = hashToken(dto.token);
+    const resetToken = await this.authRepository.findPasswordResetTokenByHash(tokenHash);
+
+    if (!resetToken || resetToken.usedAt !== null || resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired password reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.authRepository.updateUserPassword(resetToken.userId, passwordHash);
+    await this.authRepository.updatePasswordResetToken(resetToken.id, { usedAt: new Date() });
+    await this.authRepository.revokeAllRefreshTokensForUser(resetToken.userId);
+  }
+
+  async generateInvitationToken(userId: string): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await this.authRepository.createInvitationToken(userId, tokenHash, expiresAt);
+    return token;
+  }
+
+  async acceptInvitation(dto: AcceptInvitationDto): Promise<void> {
+    const tokenHash = hashToken(dto.token);
+    const inviteToken = await this.authRepository.findInvitationTokenByHash(tokenHash);
+
+    if (!inviteToken || inviteToken.usedAt !== null || inviteToken.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired invitation token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    await this.authRepository.updateUserPassword(inviteToken.userId, passwordHash);
+    await this.authRepository.updateInvitationToken(inviteToken.id, { usedAt: new Date() });
+    await this.authRepository.revokeAllRefreshTokensForUser(inviteToken.userId);
+
+    const user = await this.authRepository.findUserById(inviteToken.userId);
+    if (user && !user.isActive) {
+      await this.authRepository.updateUserPassword(user.id, passwordHash); // updates the same user
+      // Also make sure user is active
+      await this.authRepository.createUser({
+        ...user,
+        isActive: true,
+      } as any).catch(async () => {
+        // Since user already exists, update them using direct update
+        await this.authRepository.updateUserPassword(user.id, passwordHash); // redundant but let's do direct update:
+      });
+      // Let's do a direct prisma update to toggle isActive
+      await (this.authRepository as any).prisma.user.update({
+        where: { id: user.id },
+        data: { isActive: true },
+      });
+    }
+  }
+
+  async impersonate(
+    targetUserId: string,
+    adminId: string,
+    ipAddress?: string,
+  ): Promise<{ accessToken: string }> {
+    const targetUser = await this.authRepository.findUserById(targetUserId);
+    if (!targetUser) {
+      throw new NotFoundException('Target user not found');
+    }
+
+    if (!targetUser.isActive || targetUser.archivedAt !== null) {
+      throw new BadRequestException('Cannot impersonate inactive or archived user');
+    }
+
+    const admin = await this.authRepository.findUserById(adminId);
+    if (!admin || admin.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Only Super Admins can impersonate users');
+    }
+
+    const accessSecret = this.configService.get<string>('jwt.accessSecret');
+    const accessPayload = {
+      sub: targetUser.id,
+      companyId: targetUser.companyId,
+      role: targetUser.role,
+      impersonatedBy: admin.id,
+    };
+
+    const accessToken = await this.jwtService.signAsync(accessPayload, {
+      secret: accessSecret,
+      expiresIn: '20m', // 20 minutes impersonation token
+    });
+
+    await this.authRepository.createImpersonationLog(admin.id, targetUser.id, ipAddress);
+
+    return { accessToken };
+  }
+
+  async stopImpersonation(adminId: string, targetUserId: string): Promise<void> {
+    const log = await this.authRepository.findActiveImpersonationLog(adminId, targetUserId);
+    if (!log) {
+      throw new BadRequestException('No active impersonation session found');
+    }
+
+    await this.authRepository.updateImpersonationLog(log.id, { endedAt: new Date() });
   }
 
   private async issueTokenPair(

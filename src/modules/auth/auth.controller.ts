@@ -10,6 +10,9 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -70,6 +73,47 @@ export class AuthController {
     await this.authService.logout(dto.refreshToken);
     return {
       message: 'Logout successful',
+      data: null,
+    };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset email (Anti-enumeration)' })
+  @ApiResponse({ status: 200, description: 'If the email exists, a reset link will be sent' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto);
+    return {
+      message: 'If the email exists, a password reset link has been sent.',
+      data: null,
+    };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using token' })
+  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto);
+    return {
+      message: 'Password reset successful.',
+      data: null,
+    };
+  }
+
+  @Public()
+  @Post('accept-invitation')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept account invitation and set password' })
+  @ApiResponse({ status: 200, description: 'Invitation accepted and password set' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async acceptInvitation(@Body() dto: AcceptInvitationDto) {
+    await this.authService.acceptInvitation(dto);
+    return {
+      message: 'Invitation accepted successfully.',
       data: null,
     };
   }

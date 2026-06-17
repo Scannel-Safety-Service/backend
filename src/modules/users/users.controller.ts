@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
@@ -74,5 +74,18 @@ export class UsersController {
   @ApiResponse({ status: 204, description: 'User permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.usersService.permanentDelete(id);
+  }
+
+  @Post(':id/send-welcome-email')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Send welcome/invitation email to a user' })
+  @ApiResponse({ status: 200, description: 'Welcome email sent successfully' })
+  async sendWelcomeEmail(@Param('id') id: string) {
+    await this.usersService.sendWelcomeEmail(id);
+    return {
+      message: 'Welcome email sent successfully.',
+      data: null,
+    };
   }
 }

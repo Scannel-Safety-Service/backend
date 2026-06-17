@@ -3,10 +3,16 @@ import { Prisma, User } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UsersRepository } from './users.repository';
+import { AuthService } from '../auth/auth.service';
+import { MailerService } from '../../shared/mailer/mailer.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly authService: AuthService,
+    private readonly mailerService: MailerService,
+  ) {}
 
   async findAll(queryDto: UserQueryDto) {
     const where: Prisma.UserWhereInput = {};
@@ -99,5 +105,15 @@ export class UsersService {
     }
 
     await this.usersRepository.delete(id);
+  }
+
+  async sendWelcomeEmail(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    if (user.archivedAt !== null) {
+      throw new BadRequestException('Cannot send welcome email to an archived user');
+    }
+
+    const token = await this.authService.generateInvitationToken(user.id);
+    await this.mailerService.sendWelcomeInvitationEmail(user.email, token);
   }
 }

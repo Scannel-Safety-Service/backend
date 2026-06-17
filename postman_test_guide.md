@@ -7,7 +7,7 @@ This guide describes how to verify the multi-tenant Authentication, Companies, a
 ## 1. Postman Setup
 
 Set up a Postman Environment with the following variables:
-- `baseUrl`: `http://localhost:3000`
+- `baseUrl`: `http://localhost:3000/api/v1`
 - `accessToken`: (Leave blank; copy-paste here after login)
 - `refreshToken`: (Leave blank; copy-paste here after login)
 - `superAdminToken`: (Leave blank)
@@ -140,3 +140,60 @@ For all authenticated requests, select **Authorization -> Type: Bearer Token** a
 - **Method & Path**: `DELETE {{baseUrl}}/users/{{userId}}/permanent`
 - **Headers**: `Authorization: Bearer {{companyAdminToken}}`
 - **Expectation**: `204 No Content` (User is permanently deleted from the database).
+
+---
+
+## 5. Password Reset & Welcoming Invitation Flow
+
+### A. Forgot Password
+- **Method & Path**: `POST {{baseUrl}}/auth/forgot-password`
+- **Body** (JSON):
+  ```json
+  {
+    "email": "superadmin@scannel.com"
+  }
+  ```
+- **Expectation**: `200 OK` (If user exists, a password reset link/token will print in NestJS console).
+
+### B. Reset Password
+- **Method & Path**: `POST {{baseUrl}}/auth/reset-password`
+- **Body** (JSON):
+  ```json
+  {
+    "token": "TOKEN_FROM_CONSOLE_LOG",
+    "newPassword": "newpassword123"
+  }
+  ```
+- **Expectation**: `200 OK`. (Invalidates all active refresh tokens for the user).
+
+### C. Trigger Welcome Invitation Email
+- **Method & Path**: `POST {{baseUrl}}/users/{{userId}}/send-welcome-email`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` (An invitation token is generated and printed to the NestJS console).
+
+### D. Accept Invitation & Set Password
+- **Method & Path**: `POST {{baseUrl}}/auth/accept-invitation`
+- **Body** (JSON):
+  ```json
+  {
+    "token": "TOKEN_FROM_CONSOLE_LOG",
+    "password": "myfirstpassword123"
+  }
+  ```
+- **Expectation**: `200 OK`. (Sets password hash, marks token as used, and ensures the user is active).
+
+---
+
+## 6. Admin Impersonation Flow
+
+### A. Start Impersonation (Super Admin only)
+- **Method & Path**: `POST {{baseUrl}}/admin/users/{{userId}}/impersonate` (Where `userId` is a target user)
+- **Headers**: `Authorization: Bearer {{superAdminToken}}`
+- **Expectation**: `200 OK` returning `{ "accessToken": "SHORT_LIVED_TOKEN" }`.
+- **Action**: Copy the returned `accessToken` and use it as Bearer Token for subsequent tenant calls (e.g. `GET {{baseUrl}}/users` will only return the target company's users). Note: No `refreshToken` is issued.
+
+### B. Stop Impersonation
+- **Method & Path**: `POST {{baseUrl}}/admin/impersonate/stop`
+- **Headers**: `Authorization: Bearer <Impersonation Token>` (Use the short-lived impersonation token you got in step A)
+- **Expectation**: `200 OK`. (Updates `endedAt` on the active `ImpersonationLog`).
+- **Action**: Discard the impersonation token and restore your `superAdminToken` for subsequent admin requests.

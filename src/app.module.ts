@@ -12,6 +12,7 @@ import jwtConfig from './config/jwt.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { UsersModule } from './modules/users/users.module';
+import { MailerModule } from './shared/mailer/mailer.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module';
       load: [jwtConfig],
     }),
     PrismaModule,
+    MailerModule,
     AuthModule,
     CompaniesModule,
     UsersModule,
