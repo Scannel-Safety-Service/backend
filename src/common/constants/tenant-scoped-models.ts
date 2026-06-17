@@ -8,4 +8,8 @@ export const TENANT_SCOPED_MODELS = [
   'PasswordResetToken',
   'InvitationToken',
   'ImpersonationLog',
+  'Category',
+  'Document',
+  'Individual',
+  'Reminder',
 ];

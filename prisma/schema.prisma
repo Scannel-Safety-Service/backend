@@ -14,11 +14,15 @@ enum Role {
 }
 
 model Company {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  users     User[]
+  id          String       @id @default(uuid())
+  name        String
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  users       User[]
+  categories  Category[]
+  documents   Document[]
+  individuals Individual[]
+  reminders   Reminder[]
 }
 
 model User {
@@ -41,6 +45,10 @@ model User {
   invitationTokens       InvitationToken[]
   impersonationsAsAdmin  ImpersonationLog[]   @relation("AdminImpersonations")
   impersonationsAsTarget ImpersonationLog[]   @relation("TargetImpersonations")
+  categories             Category[]
+  documents              Document[]
+  individuals            Individual[]
+  reminders              Reminder[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -97,4 +105,100 @@ model ImpersonationLog {
 
   @@index([adminId])
   @@index([targetUserId])
+}
+
+enum DocumentSection {
+  SAFETY_STATEMENT
+  COMPANY_DOCUMENTS
+  RISK_ASSESSMENT
+  METHOD_STATEMENTS
+  TRAINING_REGISTER
+  TRAINING_QUALIFICATIONS
+}
+
+model Category {
+  id         String          @id @default(uuid())
+  name       String
+  section    DocumentSection
+  companyId  String
+  company    Company         @relation(fields: [companyId], references: [id])
+  userId     String?
+  user       User?           @relation(fields: [userId], references: [id])
+  archivedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  documents  Document[]
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model Document {
+  id               String          @id @default(uuid())
+  companyId        String
+  company          Company         @relation(fields: [companyId], references: [id])
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id])
+  categoryId       String?
+  category         Category?       @relation(fields: [categoryId], references: [id])
+  section          DocumentSection
+  fileUrl          String
+  originalFileName String
+  archivedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model StandardDocument {
+  id               String          @id @default(uuid())
+  title            String
+  section          DocumentSection
+  fileUrl          String
+  originalFileName String
+  description      String?
+  archivedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Individual {
+  id         String     @id @default(uuid())
+  companyId  String
+  company    Company    @relation(fields: [companyId], references: [id])
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  firstName  String
+  lastName   String
+  archivedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  reminders  Reminder[]
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model Reminder {
+  id           String      @id @default(uuid())
+  companyId    String
+  company      Company     @relation(fields: [companyId], references: [id])
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+  individualId String?
+  individual   Individual? @relation(fields: [individualId], references: [id])
+  title        String
+  description  String?
+  dueDate      DateTime
+  completedAt  DateTime?
+  archivedAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([individualId])
 }

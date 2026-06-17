@@ -53,7 +53,16 @@ export class AuthService {
       throw new ForbiddenException('Only admins can register users');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    let passwordHash: string;
+    let isActive = true;
+
+    if (dto.password) {
+      passwordHash = await bcrypt.hash(dto.password, 12);
+    } else {
+      const randomPassword = randomBytes(32).toString('hex');
+      passwordHash = await bcrypt.hash(randomPassword, 12);
+      isActive = false;
+    }
 
     try {
       const userCreateInput: any = {
@@ -63,7 +72,7 @@ export class AuthService {
         lastName: dto.lastName,
         role: dto.role,
         userCode: dto.userCode || null,
-        isActive: true,
+        isActive,
       };
 
       if (companyId) {
@@ -188,27 +197,15 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    await this.authRepository.updateUserPassword(inviteToken.userId, passwordHash);
-    await this.authRepository.updateInvitationToken(inviteToken.id, { usedAt: new Date() });
-    await this.authRepository.revokeAllRefreshTokensForUser(inviteToken.userId);
 
-    const user = await this.authRepository.findUserById(inviteToken.userId);
-    if (user && !user.isActive) {
-      await this.authRepository.updateUserPassword(user.id, passwordHash); // updates the same user
-      // Also make sure user is active
-      await this.authRepository.createUser({
-        ...user,
+    await Promise.all([
+      this.authRepository.updateUser(inviteToken.userId, {
+        passwordHash,
         isActive: true,
-      } as any).catch(async () => {
-        // Since user already exists, update them using direct update
-        await this.authRepository.updateUserPassword(user.id, passwordHash); // redundant but let's do direct update:
-      });
-      // Let's do a direct prisma update to toggle isActive
-      await (this.authRepository as any).prisma.user.update({
-        where: { id: user.id },
-        data: { isActive: true },
-      });
-    }
+      }),
+      this.authRepository.updateInvitationToken(inviteToken.id, { usedAt: new Date() }),
+      this.authRepository.revokeAllRefreshTokensForUser(inviteToken.userId),
+    ]);
   }
 
   async impersonate(

@@ -12,6 +12,11 @@ import jwtConfig from './config/jwt.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { StandardDocumentsModule } from './modules/standard-documents/standard-documents.module';
+import { IndividualsModule } from './modules/individuals/individuals.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
 import { MailerModule } from './shared/mailer/mailer.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -27,6 +32,11 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     CompaniesModule,
     UsersModule,
+    CategoriesModule,
+    DocumentsModule,
+    StandardDocumentsModule,
+    IndividualsModule,
+    RemindersModule,
   ],
   providers: [
     {
