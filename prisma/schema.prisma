@@ -1,0 +1,100 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  COMPANY_USER
+  APP_USER
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model User {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  userCode        String?       // human-readable ID shown in admin UI ("User ID" in filters)
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role
+  isActive        Boolean       @default(true)
+  archivedAt      DateTime?     // reversible soft-archive, separate from isActive
+
+  // Tenant link — null only for SUPER_ADMIN
+  companyId       String?
+  company         Company?      @relation(fields: [companyId], references: [id])
+
+  refreshTokens          RefreshToken[]
+  resetTokens            PasswordResetToken[]
+  invitationTokens       InvitationToken[]
+  impersonationsAsAdmin  ImpersonationLog[]   @relation("AdminImpersonations")
+  impersonationsAsTarget ImpersonationLog[]   @relation("TargetImpersonations")
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([companyId])
+  @@unique([companyId, userCode])   // userCode unique within a company, not globally
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  tokenHash   String   @unique   // never store raw token
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+  tokenHash   String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model InvitationToken {
+  id          String   @id @default(uuid())
+  tokenHash   String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ImpersonationLog {
+  id           String    @id @default(uuid())
+  adminId      String
+  admin        User      @relation("AdminImpersonations", fields: [adminId], references: [id])
+  targetUserId String
+  targetUser   User      @relation("TargetImpersonations", fields: [targetUserId], references: [id])
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  ipAddress    String?
+
+  @@index([adminId])
+  @@index([targetUserId])
+}
