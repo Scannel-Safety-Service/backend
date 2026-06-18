@@ -1,13 +1,13 @@
 # Postman API Testing Guide
 
-This guide describes how to verify the multi-tenant Authentication, Companies, and Users endpoints using Postman.
+This guide describes how to verify the multi-tenant Authentication, Companies, Users, Categories, Documents, Standard Documents, Individuals, and Reminders endpoints using Postman.
 
 ---
 
 ## 1. Postman Setup
 
 Set up a Postman Environment with the following variables:
-- `baseUrl`: `http://localhost:3000/api/v1`
+- `baseUrl`: `http://localhost:8000/api/v1` (Note: Backend runs on port 8000 by default)
 - `accessToken`: (Leave blank; copy-paste here after login)
 - `refreshToken`: (Leave blank; copy-paste here after login)
 - `superAdminToken`: (Leave blank)
@@ -15,6 +15,11 @@ Set up a Postman Environment with the following variables:
 - `appUserToken`: (Leave blank)
 - `companyId`: (Leave blank)
 - `userId`: (Leave blank)
+- `categoryId`: (Leave blank)
+- `documentId`: (Leave blank)
+- `standardDocumentId`: (Leave blank)
+- `individualId`: (Leave blank)
+- `reminderId`: (Leave blank)
 
 For all authenticated requests, select **Authorization -> Type: Bearer Token** and set the Token to the variable name (e.g., `{{accessToken}}` or `{{superAdminToken}}`).
 
@@ -197,3 +202,172 @@ For all authenticated requests, select **Authorization -> Type: Bearer Token** a
 - **Headers**: `Authorization: Bearer <Impersonation Token>` (Use the short-lived impersonation token you got in step A)
 - **Expectation**: `200 OK`. (Updates `endedAt` on the active `ImpersonationLog`).
 - **Action**: Discard the impersonation token and restore your `superAdminToken` for subsequent admin requests.
+
+---
+
+## 7. Categories Management
+
+Categories define specific areas in the safety register and belong to a fixed `DocumentSection` enum:
+`SAFETY_STATEMENT`, `COMPANY_DOCUMENTS`, `RISK_ASSESSMENT`, `METHOD_STATEMENTS`, `TRAINING_REGISTER`, `TRAINING_QUALIFICATIONS`.
+
+### A. Create Category
+- **Method & Path**: `POST {{baseUrl}}/categories`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "name": "General Safety Declarations",
+    "section": "SAFETY_STATEMENT"
+  }
+  ```
+- **Action**: Copy the returned `data.id` and save it as your `categoryId` environment variable.
+
+### B. List Scoped Categories
+- **Method & Path**: `GET {{baseUrl}}/categories?section=SAFETY_STATEMENT`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: Returns only categories belonging to the caller's company.
+- **Cross-Tenant Test**: Try retrieving categories using another tenant's credentials. Ensure you only receive resources scoped to that specific tenant.
+
+### C. Update Category
+- **Method & Path**: `PATCH {{baseUrl}}/categories/{{categoryId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Updated Safety Declarations"
+  }
+  ```
+
+### D. Archive and Restore Category
+- **Soft-Archive**: `PATCH {{baseUrl}}/categories/{{categoryId}}/archive` (returns category with `archivedAt` populated).
+- **Restore**: `PATCH {{baseUrl}}/categories/{{categoryId}}/restore` (sets `archivedAt` back to `null`).
+
+### E. Permanent Delete Category
+- **Pre-requisite**: Must be archived first.
+- **Method & Path**: `DELETE {{baseUrl}}/categories/{{categoryId}}/permanent`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `204 No Content`.
+
+---
+
+## 8. Documents Upload, Scoping & Physical Cleanup
+
+The Documents module serves uploaded files. It uses a storage service to serve files statically via `http://localhost:8000/uploads/<filename>`.
+
+### A. Upload Document (Multipart Form-Data)
+- **Method & Path**: `POST {{baseUrl}}/documents`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body**: Select **form-data** mode in Postman and input the following keys:
+  - `file`: (Change key type from Text to **File** and upload any PDF/Image/Txt file)
+  - `section`: `SAFETY_STATEMENT`
+  - `categoryId`: `{{categoryId}}` (Use the ID generated in step 7A)
+- **Action**: Copy the returned `data.id` and save it as `documentId`. Copy the `fileUrl` (e.g. `/uploads/xxxx.pdf`).
+- **File Server Verification**: Open `http://localhost:8000{{fileUrl}}` in your web browser. The uploaded file should render correctly.
+
+### B. List and Access Documents
+- **Method & Path**: `GET {{baseUrl}}/documents`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: The list should only return documents matching the caller's `companyId`.
+
+### C. Replace File / Update Metadata
+- **Method & Path**: `PATCH {{baseUrl}}/documents/{{documentId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (form-data):
+  - `file`: (Upload a new file to replace the old one)
+  - `categoryId`: `{{categoryId}}`
+- **Expectation**: The backend deletes the old physical file in the `uploads/` folder and updates the record with the new file name and URL.
+
+### D. Soft-Archive Document
+- **Method & Path**: `PATCH {{baseUrl}}/documents/{{documentId}}/archive`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+
+### E. Permanent Delete (Physical File Cleanup Verification)
+- **Pre-requisite**: Document must be archived first.
+- **Method & Path**: `DELETE {{baseUrl}}/documents/{{documentId}}/permanent`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `204 No Content`.
+- **Physical Verification**: Check the `backend/uploads/` directory on disk. Verify that the file matching `fileUrl` is completely removed.
+
+---
+
+## 9. Standard Documents (Global Templates)
+
+Standard Documents are public templates managed by `SUPER_ADMIN`s. All tenants have read access, but only `SUPER_ADMIN`s can create, update, archive, or delete them.
+
+### A. Attempt Template Upload by Company Admin (Expected to Fail)
+- **Method & Path**: `POST {{baseUrl}}/standard-documents`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (form-data):
+  - `file`: (Upload a file)
+  - `title`: `Safety Checklist Template`
+  - `section`: `SAFETY_STATEMENT`
+- **Expectation**: `403 Forbidden` (Only Super Admins can write global templates).
+
+### B. Create Template by Super Admin
+- **Method & Path**: `POST {{baseUrl}}/standard-documents`
+- **Headers**: `Authorization: Bearer {{superAdminToken}}`
+- **Body** (form-data):
+  - `file`: (Upload a file)
+  - `title`: `Global Safety Checklist Template`
+  - `section`: `SAFETY_STATEMENT`
+  - `description`: `General statement blueprint`
+- **Action**: Save the returned `data.id` as `standardDocumentId`.
+
+### C. List Templates (Any Role)
+- **Method & Path**: `GET {{baseUrl}}/standard-documents`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (Verify a Company Admin/User can read this global data)
+- **Expectation**: `200 OK` listing the template created by the Super Admin.
+
+---
+
+## 10. Individuals (Dependents/Sub-Records)
+
+Individuals represent sub-records (e.g. training candidates/dependents) associated with a User.
+
+### A. Create Individual
+- **Method & Path**: `POST {{baseUrl}}/individuals`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "userId": "{{userId}}",
+    "firstName": "Jane",
+    "lastName": "Smith"
+  }
+  ```
+- **Action**: Save the returned `data.id` as `individualId`.
+
+### B. List Individuals
+- **Method & Path**: `GET {{baseUrl}}/individuals`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: Returns list scoped strictly to the company.
+
+---
+
+## 11. Reminders (Date-Based Alerts)
+
+Reminders track alerts for individual users or dependents.
+
+### A. Create Reminder
+- **Method & Path**: `POST {{baseUrl}}/reminders`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "userId": "{{userId}}",
+    "individualId": "{{individualId}}",
+    "title": "Medical Check Refresher",
+    "description": "Bi-annual review",
+    "dueDate": "2026-12-01T09:00:00.000Z"
+  }
+  ```
+- **Action**: Save the returned `data.id` as `reminderId`.
+
+### B. Complete Reminder
+- **Method & Path**: `PATCH {{baseUrl}}/reminders/{{reminderId}}/complete`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with `completedAt` populated with the current date.
+
+### C. Tenant Leak Verification
+- Log in as a Company A Admin, and attempt to fetch, complete, or delete Company B's `reminderId`.
+- **Expectation**: The server must return `404 Not Found` (anti-enumeration behavior) rather than letting you inspect or update another company's reminders.
