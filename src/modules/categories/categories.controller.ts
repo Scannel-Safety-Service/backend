@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
@@ -16,8 +18,11 @@ export class CategoriesController {
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Create a new category (auto-scoped to caller company except Super Admin)' })
-  async create(@Body() createCategoryDto: CreateCategoryDto) {
-    const category = await this.categoriesService.create(createCategoryDto);
+  async create(
+    @Body() createCategoryDto: CreateCategoryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const category = await this.categoriesService.create(createCategoryDto, user);
     return {
       message: 'Category created successfully',
       data: category,
@@ -27,8 +32,11 @@ export class CategoriesController {
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
   @ApiOperation({ summary: 'List and filter categories (auto-scoped)' })
-  async findAll(@Query() queryDto: CategoryQueryDto) {
-    const result = await this.categoriesService.findAll(queryDto);
+  async findAll(
+    @Query() queryDto: CategoryQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const result = await this.categoriesService.findAll(queryDto, user);
     return {
       message: 'Categories retrieved successfully',
       data: result,
@@ -49,8 +57,12 @@ export class CategoriesController {
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Update a category' })
-  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
-    const category = await this.categoriesService.update(id, updateCategoryDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const category = await this.categoriesService.update(id, updateCategoryDto, user);
     return {
       message: 'Category updated successfully',
       data: category,
@@ -60,8 +72,11 @@ export class CategoriesController {
   @Patch(':id/archive')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Soft archive a category (reversible)' })
-  async archive(@Param('id') id: string) {
-    const category = await this.categoriesService.archive(id);
+  async archive(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const category = await this.categoriesService.archive(id, user);
     return {
       message: 'Category archived successfully',
       data: category,
@@ -71,8 +86,11 @@ export class CategoriesController {
   @Patch(':id/restore')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Restore an archived category' })
-  async restore(@Param('id') id: string) {
-    const category = await this.categoriesService.restore(id);
+  async restore(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const category = await this.categoriesService.restore(id, user);
     return {
       message: 'Category restored successfully',
       data: category,
@@ -84,7 +102,10 @@ export class CategoriesController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Irreversibly delete a category (must be archived first)' })
   @ApiResponse({ status: 204, description: 'Category permanently deleted' })
-  async permanentDelete(@Param('id') id: string) {
-    await this.categoriesService.permanentDelete(id);
+  async permanentDelete(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.categoriesService.permanentDelete(id, user);
   }
 }

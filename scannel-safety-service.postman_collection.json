@@ -588,7 +588,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Safety Guidelines 2026\",\n  \"section\": \"SAFETY_STATEMENT\"\n}",
+              "raw": "{\n  \"name\": \"Safety Guidelines 2026\",\n  \"section\": \"COMPANY_DOCUMENTS\",\n  \"assignToAll\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -623,7 +623,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/categories?section=SAFETY_STATEMENT",
+              "raw": "{{baseUrl}}/categories?section=COMPANY_DOCUMENTS&userId={{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -633,7 +633,11 @@
               "query": [
                 {
                   "key": "section",
-                  "value": "SAFETY_STATEMENT"
+                  "value": "COMPANY_DOCUMENTS"
+                },
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
                 }
               ]
             }
@@ -685,7 +689,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Safety Guidelines 2026\"\n}",
+              "raw": "{\n  \"name\": \"Updated Safety Guidelines 2026\",\n  \"assignToAll\": false,\n  \"userIds\": [\n    \"{{userId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

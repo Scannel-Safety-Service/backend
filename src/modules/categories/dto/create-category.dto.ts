@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DocumentSection } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ description: 'The name of the category' })
@@ -12,8 +12,13 @@ export class CreateCategoryDto {
   @IsEnum(DocumentSection)
   section: DocumentSection;
 
-  @ApiPropertyOptional({ description: 'Optional user ID if this category is scoped to a single user' })
-  @IsUUID()
+  @ApiProperty({ description: 'Assign category to all users' })
+  @IsBoolean()
+  assignToAll: boolean;
+
+  @ApiPropertyOptional({ type: [String], description: 'Optional array of specific user IDs assigned to this category' })
+  @IsArray()
+  @IsUUID(undefined, { each: true })
   @IsOptional()
-  userId?: string;
+  userIds?: string[];
 }

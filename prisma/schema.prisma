@@ -45,7 +45,8 @@ model User {
   invitationTokens       InvitationToken[]
   impersonationsAsAdmin  ImpersonationLog[]   @relation("AdminImpersonations")
   impersonationsAsTarget ImpersonationLog[]   @relation("TargetImpersonations")
-  categories             Category[]
+  createdCategories      Category[]            @relation("CategoryCreator")
+  categoryAssignments    CategoryUser[]
   documents              Document[]
   individuals            Individual[]
   reminders              Reminder[]
@@ -117,19 +118,41 @@ enum DocumentSection {
 }
 
 model Category {
-  id         String          @id @default(uuid())
-  name       String
-  section    DocumentSection
-  companyId  String
-  company    Company         @relation(fields: [companyId], references: [id])
-  userId     String?
-  user       User?           @relation(fields: [userId], references: [id])
-  archivedAt DateTime?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  documents  Document[]
+  id          String          @id @default(uuid())
+  name        String
+  section     DocumentSection
+  companyId   String?
+  company     Company?        @relation(fields: [companyId], references: [id])
+  
+  assignToAll Boolean         @default(false)
+  
+  createdById String
+  createdBy   User            @relation("CategoryCreator", fields: [createdById], references: [id])
+  
+  assignments CategoryUser[]
+  
+  archivedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  documents   Document[]
 
   @@index([companyId])
+  @@index([createdById])
+}
+
+model CategoryUser {
+  id         String   @id @default(uuid())
+  
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([categoryId, userId])
+  @@index([categoryId])
   @@index([userId])
 }
 

@@ -207,46 +207,65 @@ For all authenticated requests, select **Authorization -> Type: Bearer Token** a
 
 ## 7. Categories Management
 
-Categories define specific areas in the safety register and belong to a fixed `DocumentSection` enum:
-`SAFETY_STATEMENT`, `COMPANY_DOCUMENTS`, `RISK_ASSESSMENT`, `METHOD_STATEMENTS`, `TRAINING_REGISTER`, `TRAINING_QUALIFICATIONS`.
+Categories define specific areas in the safety register. Under the new model, categories can only belong to either `COMPANY_DOCUMENTS` or `RISK_ASSESSMENT` sections.
 
-### A. Create Category
+### A. Create Category (Option A: Assign to all users)
 - **Method & Path**: `POST {{baseUrl}}/categories`
-- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (Company Admin scopes it to their company, Super Admin scopes it globally)
 - **Body** (JSON):
   ```json
   {
-    "name": "General Safety Declarations",
-    "section": "SAFETY_STATEMENT"
+    "name": "Electrical Safety Guidelines",
+    "section": "COMPANY_DOCUMENTS",
+    "assignToAll": true
   }
   ```
 - **Action**: Copy the returned `data.id` and save it as your `categoryId` environment variable.
 
-### B. List Scoped Categories
-- **Method & Path**: `GET {{baseUrl}}/categories?section=SAFETY_STATEMENT`
-- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
-- **Expectation**: Returns only categories belonging to the caller's company.
-- **Cross-Tenant Test**: Try retrieving categories using another tenant's credentials. Ensure you only receive resources scoped to that specific tenant.
+### B. Create Category (Option B: Assign to specific users)
+- **Method & Path**: `POST {{baseUrl}}/categories`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (Users must belong to caller's company)
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Special Risk Checklist",
+    "section": "RISK_ASSESSMENT",
+    "assignToAll": false,
+    "userIds": ["{{userId}}"]
+  }
+  ```
 
-### C. Update Category
+### C. List Categories (With Scoping)
+- **Method & Path**: `GET {{baseUrl}}/categories?section=COMPANY_DOCUMENTS&userId={{userId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**:
+  - Regular Users (`COMPANY_USER`, `APP_USER`) only see categories they are assigned to (where `assignToAll` is true or they are in `userIds`).
+  - Company Admins see all categories in their company plus global categories.
+  - Super Admins see all categories.
+
+### D. Update Category
 - **Method & Path**: `PATCH {{baseUrl}}/categories/{{categoryId}}`
 - **Headers**: `Authorization: Bearer {{companyAdminToken}}`
 - **Body** (JSON):
   ```json
   {
-    "name": "Updated Safety Declarations"
+    "name": "Updated Electrical Safety Guidelines",
+    "assignToAll": false,
+    "userIds": ["{{userId}}"]
   }
   ```
 
-### D. Archive and Restore Category
+### E. Archive and Restore Category
 - **Soft-Archive**: `PATCH {{baseUrl}}/categories/{{categoryId}}/archive` (returns category with `archivedAt` populated).
 - **Restore**: `PATCH {{baseUrl}}/categories/{{categoryId}}/restore` (sets `archivedAt` back to `null`).
+- **Access Rule**: Regular users cannot archive/restore. Company Admins can only archive/restore their own company categories. Only Super Admins can archive/restore global categories.
 
-### E. Permanent Delete Category
+### F. Permanent Delete Category
 - **Pre-requisite**: Must be archived first.
 - **Method & Path**: `DELETE {{baseUrl}}/categories/{{categoryId}}/permanent`
 - **Headers**: `Authorization: Bearer {{companyAdminToken}}`
-- **Expectation**: `204 No Content`.
+- **Expectation**: `204 No Content` (junction assignments are automatically deleted due to Cascade constraints).
+- **Access Rule**: Only Super Admins can permanently delete global categories.
 
 ---
 

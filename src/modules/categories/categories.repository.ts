@@ -14,7 +14,7 @@ export class CategoriesRepository {
     where: Prisma.CategoryWhereInput,
     page: number = 1,
     limit: number = 10,
-  ): Promise<[Category[], number]> {
+  ): Promise<[(Category & { assignments: { userId: string }[] })[], number]> {
     const skip = (page - 1) * limit;
     const take = limit;
 
@@ -23,18 +23,32 @@ export class CategoriesRepository {
         where,
         skip,
         take,
+        include: {
+          assignments: {
+            select: {
+              userId: true,
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       }),
       this.client.category.count({ where }),
     ]) as any);
 
-    return [items as Category[], total as number];
+    return [items as any[], total as number];
   }
 
-  async findById(id: string): Promise<Category | null> {
+  async findById(id: string): Promise<(Category & { assignments: { userId: string }[] }) | null> {
     return this.client.category.findUnique({
       where: { id },
-    });
+      include: {
+        assignments: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    }) as any;
   }
 
   async create(data: Prisma.CategoryCreateInput): Promise<Category> {

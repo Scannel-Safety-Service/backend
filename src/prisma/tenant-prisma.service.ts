@@ -55,7 +55,36 @@ export class TenantPrismaService {
                   'upsert',
                 ].includes(operation)
               ) {
-                queryArgs.where = { ...queryArgs.where, companyId };
+                if (model === 'Category') {
+                  if (
+                    [
+                      'findMany',
+                      'findFirst',
+                      'findUnique',
+                      'findUniqueOrThrow',
+                      'count',
+                      'aggregate',
+                      'groupBy',
+                    ].includes(operation)
+                  ) {
+                    queryArgs.where = {
+                      ...queryArgs.where,
+                      AND: [
+                        ...(queryArgs.where?.AND || []),
+                        {
+                          OR: [
+                            { companyId },
+                            { companyId: null },
+                          ],
+                        },
+                      ],
+                    };
+                  } else {
+                    queryArgs.where = { ...queryArgs.where, companyId };
+                  }
+                } else {
+                  queryArgs.where = { ...queryArgs.where, companyId };
+                }
               }
 
               // 2. Intercept and auto-inject tenant on creations
