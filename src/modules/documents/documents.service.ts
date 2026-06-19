@@ -7,6 +7,8 @@ import { DocumentsRepository } from './documents.repository';
 import { StorageService } from '../../shared/storage/storage.service';
 import { CategoriesService } from '../categories/categories.service';
 import { TenantPrismaService } from '../../prisma/tenant-prisma.service';
+import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { Role } from '../../common/enums/role.enum';
 
 @Injectable()
 export class DocumentsService {
@@ -17,9 +19,30 @@ export class DocumentsService {
     private readonly prismaService: TenantPrismaService,
   ) {}
 
-  async create(dto: CreateDocumentDto, file: Express.Multer.File): Promise<Document> {
+  async create(dto: CreateDocumentDto, file: Express.Multer.File, caller: AuthenticatedUser): Promise<Document> {
     if (!file) {
       throw new BadRequestException('File upload is required');
+    }
+
+    let companyId: string;
+
+    if (caller.role === Role.SUPER_ADMIN) {
+      if (!dto.companyId) {
+        throw new BadRequestException('Company ID is required for Super Admin');
+      }
+      companyId = dto.companyId;
+      // Verify company exists
+      const company = await this.prismaService.client.company.findUnique({
+        where: { id: companyId },
+      });
+      if (!company) {
+        throw new NotFoundException('Company not found');
+      }
+    } else {
+      if (!caller.companyId) {
+        throw new BadRequestException('Caller must belong to a company to upload documents');
+      }
+      companyId = caller.companyId;
     }
 
     if (dto.categoryId) {
@@ -27,16 +50,25 @@ export class DocumentsService {
     }
 
     if (dto.userId) {
-      await this.verifyUserBelongsToTenant(dto.userId);
+      const user = await this.prismaService.client.user.findUnique({
+        where: { id: dto.userId },
+      });
+      if (!user || user.companyId !== companyId) {
+        throw new NotFoundException('Scoped user not found in this company');
+      }
     }
 
     const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
 
+    const title = dto.title || file.originalname;
+
     const data: Prisma.DocumentCreateInput = {
+      title,
+      description: dto.description || null,
       section: dto.section,
       fileUrl,
       originalFileName,
-      company: { connect: { id: '' } }, // Injected by TenantPrismaService query hook
+      company: { connect: { id: companyId } },
     };
 
     if (dto.categoryId) {
@@ -50,7 +82,7 @@ export class DocumentsService {
     return this.documentsRepository.create(data);
   }
 
-  async findAll(queryDto: DocumentQueryDto) {
+  async findAll(queryDto: DocumentQueryDto, caller: AuthenticatedUser) {
     const where: Prisma.DocumentWhereInput = {};
 
     if (queryDto.section) {
@@ -63,6 +95,33 @@ export class DocumentsService {
 
     if (queryDto.userId) {
       where.userId = queryDto.userId;
+    }
+
+    // Apply security check for non-admin callers (COMPANY_USER, APP_USER)
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      where.OR = [
+        { userId: caller.userId },
+        {
+          userId: null,
+          categoryId: null,
+        },
+        {
+          category: {
+            OR: [
+              { assignToAll: true },
+              {
+                assignments: {
+                  some: {
+                    userId: caller.userId,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ];
+    } else if (caller.role === Role.SUPER_ADMIN && queryDto.companyId) {
+      where.companyId = queryDto.companyId;
     }
 
     if (queryDto.archived === 'true') {
@@ -87,26 +146,81 @@ export class DocumentsService {
     };
   }
 
-  async findOne(id: string): Promise<Document> {
+  async findOne(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.documentsRepository.findById(id);
     if (!document) {
       throw new NotFoundException('Document not found');
     }
+
+    // Tenant check
+    if (caller.role !== Role.SUPER_ADMIN && document.companyId !== caller.companyId) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // Role-based visibility check for non-admins
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      const isAssignedToUser = document.userId === caller.userId;
+      const isCompanyWide = document.userId === null && document.categoryId === null;
+
+      let isCategoryAssigned = false;
+      if (document.categoryId) {
+        const count = await this.prismaService.client.category.count({
+          where: {
+            id: document.categoryId,
+            OR: [
+              { assignToAll: true },
+              {
+                assignments: {
+                  some: {
+                    userId: caller.userId,
+                  },
+                },
+              },
+            ],
+          },
+        });
+        isCategoryAssigned = count > 0;
+      }
+
+      if (!isAssignedToUser && !isCompanyWide && !isCategoryAssigned) {
+        throw new NotFoundException('Document not found');
+      }
+    }
+
     return document;
   }
 
-  async update(id: string, dto: UpdateDocumentDto, file?: Express.Multer.File): Promise<Document> {
-    const document = await this.findOne(id);
+  async update(id: string, dto: UpdateDocumentDto, caller: AuthenticatedUser, file?: Express.Multer.File): Promise<Document> {
+    const document = await this.findOne(id, caller);
+
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const companyId = document.companyId;
 
     if (dto.categoryId) {
       await this.categoriesService.findOne(dto.categoryId);
     }
 
     if (dto.userId) {
-      await this.verifyUserBelongsToTenant(dto.userId);
+      const user = await this.prismaService.client.user.findUnique({
+        where: { id: dto.userId },
+      });
+      if (!user || user.companyId !== companyId) {
+        throw new NotFoundException('Scoped user not found in this company');
+      }
     }
 
     const updateData: Prisma.DocumentUpdateInput = {};
+
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.description !== undefined) updateData.description = dto.description;
+
+    if (dto.isReviewed !== undefined) {
+      updateData.isReviewed = dto.isReviewed;
+      updateData.reviewedAt = dto.isReviewed ? new Date() : null;
+    }
 
     if (dto.categoryId !== undefined) {
       if (dto.categoryId === null) {
@@ -125,20 +239,22 @@ export class DocumentsService {
     }
 
     if (file) {
-      // Overwrite / replace file reference
       const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
       updateData.fileUrl = fileUrl;
       updateData.originalFileName = originalFileName;
 
-      // Clean up old file asynchronously
       await this.storageService.deleteFile(document.fileUrl);
     }
 
     return this.documentsRepository.update(id, updateData);
   }
 
-  async archive(id: string): Promise<Document> {
-    const document = await this.findOne(id);
+  async archive(id: string, caller: AuthenticatedUser): Promise<Document> {
+    const document = await this.findOne(id, caller);
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      throw new NotFoundException('Document not found');
+    }
+
     if (document.archivedAt !== null) {
       throw new BadRequestException('Document is already archived');
     }
@@ -148,8 +264,12 @@ export class DocumentsService {
     });
   }
 
-  async restore(id: string): Promise<Document> {
-    const document = await this.findOne(id);
+  async restore(id: string, caller: AuthenticatedUser): Promise<Document> {
+    const document = await this.findOne(id, caller);
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      throw new NotFoundException('Document not found');
+    }
+
     if (document.archivedAt === null) {
       throw new BadRequestException('Document is not archived');
     }
@@ -159,25 +279,17 @@ export class DocumentsService {
     });
   }
 
-  async permanentDelete(id: string): Promise<void> {
-    const document = await this.findOne(id);
+  async permanentDelete(id: string, caller: AuthenticatedUser): Promise<void> {
+    const document = await this.findOne(id, caller);
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      throw new NotFoundException('Document not found');
+    }
+
     if (document.archivedAt === null) {
       throw new BadRequestException('Document must be archived first before permanent deletion');
     }
 
-    // Physically delete the file
     await this.storageService.deleteFile(document.fileUrl);
-
-    // Delete record from database
     await this.documentsRepository.delete(id);
-  }
-
-  private async verifyUserBelongsToTenant(userId: string): Promise<void> {
-    const user = await this.prismaService.client.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user) {
-      throw new NotFoundException('Scoped user not found');
-    }
   }
 }

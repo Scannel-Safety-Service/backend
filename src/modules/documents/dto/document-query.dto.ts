@@ -19,6 +19,11 @@ export class DocumentQueryDto {
   @IsOptional()
   userId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter documents by company ID (accessible by Super Admin only)' })
+  @IsUUID()
+  @IsOptional()
+  companyId?: string;
+
   @ApiPropertyOptional({ description: 'Filter to show only archived, only active, or all. Defaults to active only.' })
   @IsOptional()
   @IsString()

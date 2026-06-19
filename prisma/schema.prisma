@@ -158,6 +158,10 @@ model CategoryUser {
 
 model Document {
   id               String          @id @default(uuid())
+  title            String?         // Document display title
+  description      String?         // Optional document description
+  isReviewed       Boolean         @default(false) // Review state
+  reviewedAt       DateTime?       // Time document was reviewed
   companyId        String
   company          Company         @relation(fields: [companyId], references: [id])
   userId           String?

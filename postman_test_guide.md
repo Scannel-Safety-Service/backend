@@ -275,26 +275,37 @@ The Documents module serves uploaded files. It uses a storage service to serve f
 
 ### A. Upload Document (Multipart Form-Data)
 - **Method & Path**: `POST {{baseUrl}}/documents`
-- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (or `superAdminToken`)
 - **Body**: Select **form-data** mode in Postman and input the following keys:
   - `file`: (Change key type from Text to **File** and upload any PDF/Image/Txt file)
   - `section`: `SAFETY_STATEMENT`
-  - `categoryId`: `{{categoryId}}` (Use the ID generated in step 7A)
+  - `title`: `Company Safety Policy 2026` (Optional; defaults to the uploaded file name)
+  - `description`: `Core company health & safety guidelines.` (Optional)
+  - `categoryId`: `{{categoryId}}` (Optional; use the ID generated in step 7A)
+  - `companyId`: `{{companyId}}` (Optional; **Required only if using `superAdminToken`** to specify target tenant)
 - **Action**: Copy the returned `data.id` and save it as `documentId`. Copy the `fileUrl` (e.g. `/uploads/xxxx.pdf`).
 - **File Server Verification**: Open `http://localhost:8000{{fileUrl}}` in your web browser. The uploaded file should render correctly.
 
 ### B. List and Access Documents
-- **Method & Path**: `GET {{baseUrl}}/documents`
+- **Method & Path**: `GET {{baseUrl}}/documents?section=SAFETY_STATEMENT` (Or filter by query params `companyId`, `categoryId`, `userId`, `archived`)
 - **Headers**: `Authorization: Bearer {{companyAdminToken}}`
-- **Expectation**: The list should only return documents matching the caller's `companyId`.
+- **Expectation**: 
+  - The list returns documents matching the caller's company.
+  - Non-admin roles (`COMPANY_USER`, `APP_USER`) only see documents assigned to them, assigned to their category, or company-wide general documents.
+  - Super Admin can optionally pass `companyId` to filter documents of a specific company.
 
 ### C. Replace File / Update Metadata
 - **Method & Path**: `PATCH {{baseUrl}}/documents/{{documentId}}`
 - **Headers**: `Authorization: Bearer {{companyAdminToken}}`
 - **Body** (form-data):
-  - `file`: (Upload a new file to replace the old one)
-  - `categoryId`: `{{categoryId}}`
-- **Expectation**: The backend deletes the old physical file in the `uploads/` folder and updates the record with the new file name and URL.
+  - `file`: (Optional; upload a new file to replace the old one)
+  - `title`: `Updated Safety Policy Title` (Optional)
+  - `description`: `Updated policy details.` (Optional)
+  - `categoryId`: `{{categoryId}}` (Optional)
+  - `isReviewed`: `true` (Optional; updates reviewed state)
+- **Expectation**: 
+  - If a file is uploaded, the backend deletes the old physical file in the `uploads/` folder and updates the record with the new file.
+  - Metadata is updated. If `isReviewed` is set to `true`, `reviewedAt` is populated with the current timestamp.
 
 ### D. Soft-Archive Document
 - **Method & Path**: `PATCH {{baseUrl}}/documents/{{documentId}}/archive`

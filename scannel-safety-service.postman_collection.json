@@ -831,8 +831,27 @@
                   "type": "text"
                 },
                 {
+                  "key": "title",
+                  "value": "Company Safety Policy 2026",
+                  "description": "Optional custom display title",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Core company health & safety guidelines.",
+                  "description": "Optional document description",
+                  "type": "text"
+                },
+                {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
+                  "description": "Optional category ID",
+                  "type": "text"
+                },
+                {
+                  "key": "companyId",
+                  "value": "{{companyId}}",
+                  "description": "Required only if calling as Super Admin",
                   "type": "text"
                 }
               ]
@@ -935,8 +954,27 @@
                   "src": []
                 },
                 {
+                  "key": "title",
+                  "value": "Updated Safety Policy Title",
+                  "description": "Optional new title",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated policy details.",
+                  "description": "Optional new description",
+                  "type": "text"
+                },
+                {
                   "key": "categoryId",
                   "value": "{{categoryId}}",
+                  "description": "Optional category ID",
+                  "type": "text"
+                },
+                {
+                  "key": "isReviewed",
+                  "value": "true",
+                  "description": "Optional review state boolean",
                   "type": "text"
                 }
               ]
