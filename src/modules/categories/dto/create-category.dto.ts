@@ -22,3 +22,4 @@ export class CreateCategoryDto {
   @IsOptional()
   userIds?: string[];
 }
+

@@ -13,7 +13,7 @@ export class CategoriesService {
   constructor(
     private readonly categoriesRepository: CategoriesRepository,
     private readonly prismaService: TenantPrismaService,
-  ) {}
+  ) { }
 
   async create(dto: CreateCategoryDto, creator: AuthenticatedUser): Promise<Category> {
     // Validate section
@@ -41,9 +41,7 @@ export class CategoriesService {
       section: dto.section,
       assignToAll: dto.assignToAll,
       createdBy: { connect: { id: creator.userId } },
-      // If creator is Super Admin, companyId is null (global category).
-      // If creator is Company Admin, companyId is auto-injected by TenantPrismaService query hook,
-      // but Prisma type-safety requires defining the company relation.
+
       company: creator.companyId ? { connect: { id: creator.companyId } } : undefined,
     };
 
