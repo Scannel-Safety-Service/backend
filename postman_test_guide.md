@@ -1,6 +1,6 @@
 # Postman API Testing Guide
 
-This guide describes how to verify the multi-tenant Authentication, Companies, Users, Categories, Documents, Standard Documents, Individuals, and Reminders endpoints using Postman.
+This guide describes how to verify the multi-tenant Authentication, Companies, Users, Categories, Documents, Standard Documents, Individuals, Reminders, and Assets endpoints using Postman.
 
 ---
 
@@ -20,6 +20,9 @@ Set up a Postman Environment with the following variables:
 - `standardDocumentId`: (Leave blank)
 - `individualId`: (Leave blank)
 - `reminderId`: (Leave blank)
+- `assetId`: (Leave blank; save from asset creation response)
+- `projectId`: (Leave blank; save from project creation response)
+- `folderId`: (Leave blank; save from folders list response)
 
 For all authenticated requests, select **Authorization -> Type: Bearer Token** and set the Token to the variable name (e.g., `{{accessToken}}` or `{{superAdminToken}}`).
 
@@ -401,3 +404,145 @@ Reminders track alerts for individual users or dependents.
 ### C. Tenant Leak Verification
 - Log in as a Company A Admin, and attempt to fetch, complete, or delete Company B's `reminderId`.
 - **Expectation**: The server must return `404 Not Found` (anti-enumeration behavior) rather than letting you inspect or update another company's reminders.
+
+---
+
+## 12. Asset Management (Module 3)
+
+Assets represent physical safety assets (e.g., Telescopic Handler, Lifting Equipment, etc.) that belong to a company. They have date-based compliance expiry states (traffic-light system) and support mobile-first rapid file uploads (rapid entry).
+
+### A. Create Asset
+- **Method & Path**: `POST {{baseUrl}}/assets`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (or `superAdminToken`)
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Telescopic Handler Unit 4",
+    "serialNumber": "SN-2024-TH-00412",
+    "category": "PLANT",
+    "description": "Manitou MT 1840 — Yard A, Bay 3",
+    "expiryDate": "2026-12-31T00:00:00.000Z"
+  }
+  ```
+- **Expectation**: `201 Created` with message `"Asset created successfully"`.
+- **Action**: Save the returned `data.id` as your `assetId` environment variable.
+
+### B. List Assets (Scoped & Filtered)
+- **Method & Path**: `GET {{baseUrl}}/assets?category=PLANT&expiryStatus=valid&archived=false&page=1&limit=10`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with assets retrieved.
+  - Normal users (`COMPANY_USER`, `APP_USER`, `COMPANY_ADMIN`) only see assets of their company.
+  - Supports query filters: `category` (`PLANT`, `LIFTING_EQUIPMENT`, `WORKING_AT_HEIGHT`, `CALIBRATION_TOOLS`), `expiryStatus` (`valid`, `expiring`, `expired`), `archived` (`true`, `false`, `all`), and `companyId` (Super Admin only).
+
+### C. Get Asset Details (with Linked Documents count)
+- **Method & Path**: `GET {{baseUrl}}/assets/{{assetId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with the asset details, including the attached documents array.
+
+### D. Update Asset Metadata
+- **Method & Path**: `PATCH {{baseUrl}}/assets/{{assetId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Updated Telescopic Handler Name",
+    "category": "PLANT",
+    "description": "Updated location — Yard B, Bay 1"
+  }
+  ```
+- **Expectation**: `200 OK` with the updated asset record.
+
+### E. Soft-Archive Asset (Step 1 of deletion)
+- **Method & Path**: `PATCH {{baseUrl}}/assets/{{assetId}}/archive`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with the asset's `archivedAt` field populated with a date string.
+
+### F. Restore Soft-Archived Asset
+- **Method & Path**: `PATCH {{baseUrl}}/assets/{{assetId}}/restore`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with `archivedAt` set back to `null`.
+
+### G. Permanent Delete Asset (Must be archived first)
+- **Pre-requisite**: Asset must be archived first. If active, returns `400 Bad Request`.
+- **Method & Path**: `DELETE {{baseUrl}}/assets/{{assetId}}/permanent`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `204 No Content` on success. (Note: Cascade-deletes all linked document relationships).
+
+### H. Rapid Entry File Upload (Mobile-first induction)
+- **Method & Path**: `POST {{baseUrl}}/assets/{{assetId}}/rapid-entry`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (or `COMPANY_USER` or `superAdminToken`)
+- **Body**: Select **form-data** mode in Postman and input the following keys:
+  - `file`: (Change key type from Text to **File** and upload a certificate image or document PDF)
+- **Expectation**: `201 Created` with message `"File uploaded and linked to asset successfully"` returning the created `Document` record linked to the asset.
+
+---
+
+## 13. Project Management (Module 4)
+
+Projects represent chronological year-based environments containing compliance folders and documents.
+
+### A. Create Project
+- **Method & Path**: `POST {{baseUrl}}/projects`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (or `superAdminToken`)
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Acme Solar Site Phase A",
+    "year": 2026
+  }
+  ```
+- **Expectation**: `201 Created` with message `"Project created successfully"`. (Triggers background queue to seed 13 standard compliance folders).
+- **Action**: Save the returned `data.id` as your `projectId` environment variable.
+
+### B. List Projects (Yearwise Organized)
+- **Method & Path**: `GET {{baseUrl}}/projects?archived=false`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` returning projects grouped by calendar year under `projectsByYear`.
+- **Query Parameters**:
+  - `archived`: `true`, `false`, or `all`
+  - `year`: (Optional year filter, e.g. `2026`)
+  - `companyId`: (Optional; Super Admin only)
+
+### C. Retrieve Project Folders and Document Structure
+- **Method & Path**: `GET {{baseUrl}}/projects/{{projectId}}/folders`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` listing the 13 auto-seeded folders along with any uploaded documents.
+
+### D. Update Project Metadata
+- **Method & Path**: `PATCH {{baseUrl}}/projects/{{projectId}}`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Body** (JSON):
+  ```json
+  {
+    "name": "Acme Solar Site Phase A - Updated",
+    "year": 2056
+  }
+  ```
+- **Expectation**: `200 OK` returning the updated project.
+
+### E. Soft-Archive Project
+- **Method & Path**: `PATCH {{baseUrl}}/projects/{{projectId}}/archive`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with the project's `archivedAt` field populated.
+
+### F. Restore Project
+- **Method & Path**: `PATCH {{baseUrl}}/projects/{{projectId}}/restore`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `200 OK` with the project's `archivedAt` field reset to `null`.
+
+### G. Permanent Delete Project (Double-Gated)
+- **Pre-requisite**: Project must be archived first.
+- **Method & Path**: `DELETE {{baseUrl}}/projects/{{projectId}}/permanent`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}`
+- **Expectation**: `204 No Content` on success.
+
+### H. Upload Project Document
+- **Method & Path**: `POST {{baseUrl}}/projects/{{projectId}}/folders/{{folderId}}/documents`
+- **Headers**: `Authorization: Bearer {{companyAdminToken}}` (or `COMPANY_USER` or `superAdminToken`)
+- **Body**: Select **form-data** mode in Postman and upload a file under `file` key (multipart/form-data).
+  - `file`: (Select file)
+  - `title`: `Safety Plan Draft` (Optional)
+  - `description`: `Initial draft safety plan` (Optional)
+- **Expectation**: `201 Created` returning the created `Document` object linked to this project and folder.
+
+

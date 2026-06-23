@@ -1,4 +1,4 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { PrismaClient } from '@prisma/client';
 import { TENANT_SCOPED_MODELS } from '../common/constants/tenant-scoped-models';
@@ -13,31 +13,28 @@ export class TenantPrismaService {
     @Inject(REQUEST) private readonly request: any,
     private readonly prisma: PrismaService,
   ) {
-    const user = this.request?.user;
-
-    // Fallback if request is not authenticated yet or has no session user
-    if (!user) {
-      this.client = this.prisma;
-      return;
-    }
-
-    const { companyId, role } = user;
-
-    // Super Admin has global bypass, bypass extended client
-    if (role === Role.SUPER_ADMIN) {
-      this.client = this.prisma;
-      return;
-    }
+    const req = this.request;
 
     // Extended client with automated tenant filters on scoped models
     this.client = this.prisma.$extends({
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
+            const user = req?.user;
+
+            // If request is not authenticated yet or has no session user, bypass scoping
+            if (!user) {
+              return query(args);
+            }
+
+            const { companyId, role } = user;
+            const resolvedCompanyId = companyId || req?.body?.companyId || req?.query?.companyId;
+
             const isScoped = TENANT_SCOPED_MODELS.includes(model);
 
-            if (isScoped && companyId) {
+            if (isScoped) {
               const queryArgs = args as any;
+
               // 1. Intercept read & write filters
               if (
                 [
@@ -55,50 +52,59 @@ export class TenantPrismaService {
                   'upsert',
                 ].includes(operation)
               ) {
-                if (model === 'Category') {
-                  if (
-                    [
-                      'findMany',
-                      'findFirst',
-                      'findUnique',
-                      'findUniqueOrThrow',
-                      'count',
-                      'aggregate',
-                      'groupBy',
-                    ].includes(operation)
-                  ) {
-                    queryArgs.where = {
-                      ...queryArgs.where,
-                      AND: [
-                        ...(queryArgs.where?.AND || []),
-                        {
-                          OR: [
-                            { companyId },
-                            { companyId: null },
-                          ],
-                        },
-                      ],
-                    };
+                if (role !== Role.SUPER_ADMIN && resolvedCompanyId) {
+                  if (model === 'Category') {
+                    if (
+                      [
+                        'findMany',
+                        'findFirst',
+                        'findUnique',
+                        'findUniqueOrThrow',
+                        'count',
+                        'aggregate',
+                        'groupBy',
+                      ].includes(operation)
+                    ) {
+                      queryArgs.where = {
+                        ...queryArgs.where,
+                        AND: [
+                          ...(queryArgs.where?.AND || []),
+                          {
+                            OR: [
+                              { companyId: resolvedCompanyId },
+                              { companyId: null },
+                            ],
+                          },
+                        ],
+                      };
+                    } else {
+                      queryArgs.where = { ...queryArgs.where, companyId: resolvedCompanyId };
+                    }
                   } else {
-                    queryArgs.where = { ...queryArgs.where, companyId };
+                    queryArgs.where = { ...queryArgs.where, companyId: resolvedCompanyId };
                   }
-                } else {
-                  queryArgs.where = { ...queryArgs.where, companyId };
                 }
               }
 
               // 2. Intercept and auto-inject tenant on creations
               if (operation === 'create') {
-                queryArgs.data = { ...queryArgs.data, companyId };
+                if (resolvedCompanyId) {
+                  queryArgs.data.company = { connect: { id: resolvedCompanyId } };
+                } else if (queryArgs.data.company?.connect?.id === '') {
+                  throw new BadRequestException(`Company ID is required to create a tenant-scoped ${model}`);
+                }
               } else if (operation === 'createMany') {
-                if (Array.isArray(queryArgs.data)) {
-                  queryArgs.data = queryArgs.data.map((item: any) => ({ ...item, companyId }));
-                } else if (queryArgs.data && typeof queryArgs.data === 'object') {
-                  queryArgs.data = { ...queryArgs.data, companyId };
+                if (resolvedCompanyId) {
+                  if (Array.isArray(queryArgs.data)) {
+                    queryArgs.data = queryArgs.data.map((item: any) => ({ ...item, companyId: resolvedCompanyId }));
+                  } else if (queryArgs.data && typeof queryArgs.data === 'object') {
+                    queryArgs.data = { ...queryArgs.data, companyId: resolvedCompanyId };
+                  }
                 }
               } else if (operation === 'upsert') {
-                queryArgs.create = { ...queryArgs.create, companyId };
-                queryArgs.update = { ...queryArgs.update, companyId };
+                if (resolvedCompanyId) {
+                  queryArgs.create.company = { connect: { id: resolvedCompanyId } };
+                }
               }
             }
 
@@ -109,3 +115,4 @@ export class TenantPrismaService {
     }) as unknown as PrismaClient;
   }
 }
+

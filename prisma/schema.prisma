@@ -23,6 +23,9 @@ model Company {
   documents   Document[]
   individuals Individual[]
   reminders   Reminder[]
+  assets      Asset[]      // Module 3: Asset Management
+  projects    Project[]
+  folders     Folder[]
 }
 
 model User {
@@ -175,9 +178,24 @@ model Document {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  // Module 3: Asset attachment — optional FK; on asset deletion pointer is nulled (SetNull)
+  assetId          String?
+  asset            Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  // Module 4: Relational links
+  projectId        String?
+  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  folderId         String?
+  folder           Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  // Future: Module 1 will add isLocked Boolean, signatureHash String? here
+
   @@index([companyId])
   @@index([userId])
   @@index([categoryId])
+  @@index([assetId])
+  @@index([projectId])
+  @@index([folderId])
 }
 
 model StandardDocument {
@@ -228,4 +246,75 @@ model Reminder {
   @@index([companyId])
   @@index([userId])
   @@index([individualId])
+}
+
+// ---------------------------------------------------------------------------
+// Module 3: Asset Management
+// ---------------------------------------------------------------------------
+
+enum AssetCategory {
+  PLANT
+  LIFTING_EQUIPMENT
+  WORKING_AT_HEIGHT
+  CALIBRATION_TOOLS
+}
+
+model Asset {
+  id           String        @id @default(uuid())
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name         String        // Human-readable label / asset name
+  serialNumber String
+  category     AssetCategory
+  description  String
+  expiryDate   DateTime      // Drives Traffic Light compliance system (Module 2)
+
+  // Soft-delete: never permanently delete, only archive
+  archivedAt   DateTime?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Related compliance certificates / inspection reports
+  documents    Document[]
+
+  @@index([companyId])
+  @@index([expiryDate])         // Enables fast dashboard expiry-range queries
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Module 4: Project Management
+// ---------------------------------------------------------------------------
+
+model Project {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  year        Int       // Used for the Year-Based Hierarchy (e.g., 2025, 2026, 2027)
+  archivedAt  DateTime? // Part of the dual-gated soft-delete security pattern
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  folders     Folder[]
+  documents   Document[]
+
+  @@index([companyId])
+  @@index([year])
+}
+
+model Folder {
+  id        String     @id @default(uuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  companyId String     // Added for automatic tenant scoping
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String     // Stores the names of the 13 standard compliance sub-folders
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+
+  @@index([projectId])
+  @@index([companyId])
 }

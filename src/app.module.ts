@@ -17,6 +17,8 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { StandardDocumentsModule } from './modules/standard-documents/standard-documents.module';
 import { IndividualsModule } from './modules/individuals/individuals.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
+import { AssetsModule } from './modules/assets/assets.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { MailerModule } from './shared/mailer/mailer.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -37,6 +39,8 @@ import { PrismaModule } from './prisma/prisma.module';
     StandardDocumentsModule,
     IndividualsModule,
     RemindersModule,
+    AssetsModule,
+    ProjectsModule,
   ],
   providers: [
     {
