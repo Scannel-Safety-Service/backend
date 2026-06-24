@@ -88,4 +88,17 @@ export class UsersController {
       data: null,
     };
   }
+
+  @Post(':id/issue-to-client')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Send credentials/issue email to a user/client' })
+  @ApiResponse({ status: 200, description: 'Credentials email sent successfully' })
+  async issueToClient(@Param('id') id: string) {
+    await this.usersService.issueToClient(id);
+    return {
+      message: 'Credentials email sent successfully.',
+      data: null,
+    };
+  }
 }

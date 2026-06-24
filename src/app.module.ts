@@ -9,6 +9,7 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
 import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { validateEnv } from './config/env.validation';
 import jwtConfig from './config/jwt.config';
+import mailConfig from './config/mail.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { UsersModule } from './modules/users/users.module';
@@ -27,7 +28,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [jwtConfig],
+      load: [jwtConfig, mailConfig],
     }),
     PrismaModule,
     MailerModule,
