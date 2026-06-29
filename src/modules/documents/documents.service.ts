@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Document } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
+import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentQueryDto } from './dto/document-query.dto';
 import { DocumentsRepository } from './documents.repository';
@@ -291,5 +292,65 @@ export class DocumentsService {
 
     await this.storageService.deleteFile(document.fileUrl);
     await this.documentsRepository.delete(id);
+  }
+
+  async directDelete(id: string, caller: AuthenticatedUser): Promise<void> {
+    const document = await this.findOne(id, caller);
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      throw new NotFoundException('Document not found');
+    }
+
+    await this.storageService.deleteFile(document.fileUrl);
+    await this.documentsRepository.delete(id);
+  }
+
+  /**
+   * Assign a global standard document template to a specific user/company.
+   * Instead of re-uploading the file, we create a Document record that
+   * references the same fileUrl as the StandardDocument.
+   */
+  async createFromStandard(dto: AssignStandardDocumentDto, caller: AuthenticatedUser): Promise<Document> {
+    // Resolve the companyId
+    let companyId: string;
+    if (caller.role === Role.SUPER_ADMIN) {
+      if (!dto.companyId) throw new BadRequestException('Company ID is required for Super Admin');
+      companyId = dto.companyId;
+    } else {
+      if (!caller.companyId) throw new BadRequestException('Caller must belong to a company');
+      companyId = caller.companyId;
+    }
+
+    // Verify company exists in the tenant DB
+    const company = await this.prismaService.client.company.findUnique({ where: { id: companyId } });
+    if (!company) throw new NotFoundException('Company not found');
+
+    // Fetch the standard document from the shared Prisma client
+    const rawStdDoc = await (this.prismaService.client as any).standardDocument?.findUnique({
+      where: { id: dto.standardDocumentId },
+    });
+
+    if (!rawStdDoc) {
+      throw new NotFoundException('Standard document template not found');
+    }
+
+    // Validate user belongs to company if userId provided
+    if (dto.userId) {
+      const user = await this.prismaService.client.user.findUnique({ where: { id: dto.userId } });
+      if (!user || user.companyId !== companyId) {
+        throw new NotFoundException('User not found in this company');
+      }
+    }
+
+    const data: Prisma.DocumentCreateInput = {
+      title: dto.title || rawStdDoc.title,
+      section: dto.section || rawStdDoc.section,
+      fileUrl: rawStdDoc.fileUrl,
+      originalFileName: rawStdDoc.originalFileName || rawStdDoc.title,
+      description: `Assigned from standard template: ${rawStdDoc.title}`,
+      company: { connect: { id: companyId } },
+      ...(dto.userId ? { user: { connect: { id: dto.userId } } } : {}),
+    };
+
+    return this.documentsRepository.create(data);
   }
 }
