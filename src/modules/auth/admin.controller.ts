@@ -1,5 +1,18 @@
-import { BadRequestException, Controller, HttpCode, HttpStatus, Param, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
@@ -16,8 +29,14 @@ export class AdminController {
   @Roles(Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Impersonate a user (Super Admin only)' })
-  @ApiResponse({ status: 200, description: 'Short-lived impersonation token issued successfully' })
-  @ApiResponse({ status: 400, description: 'Cannot impersonate inactive/archived user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Short-lived impersonation token issued successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot impersonate inactive/archived user',
+  })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async impersonate(
     @Param('id') targetUserId: string,
@@ -30,7 +49,11 @@ export class AdminController {
     }
 
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
-    const result = await this.authService.impersonate(targetUserId, admin.userId, ipAddress);
+    const result = await this.authService.impersonate(
+      targetUserId,
+      admin.userId,
+      ipAddress,
+    );
 
     return {
       message: 'Impersonation session started successfully',
@@ -42,7 +65,10 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Stop the active impersonation session' })
   @ApiResponse({ status: 200, description: 'Impersonation session stopped' })
-  @ApiResponse({ status: 400, description: 'No active impersonation session found' })
+  @ApiResponse({
+    status: 400,
+    description: 'No active impersonation session found',
+  })
   async stopImpersonation(@CurrentUser() user: AuthenticatedUser) {
     if (!user.impersonatedBy) {
       throw new BadRequestException('Not currently impersonating');

@@ -38,7 +38,9 @@ export class CategoriesRepository {
     return [items as any[], total as number];
   }
 
-  async findById(id: string): Promise<(Category & { assignments: { userId: string }[] }) | null> {
+  async findById(
+    id: string,
+  ): Promise<(Category & { assignments: { userId: string }[] }) | null> {
     return this.client.category.findUnique({
       where: { id },
       include: {
@@ -48,7 +50,7 @@ export class CategoriesRepository {
           },
         },
       },
-    }) as any;
+    });
   }
 
   async create(data: Prisma.CategoryCreateInput): Promise<Category> {
@@ -57,7 +59,10 @@ export class CategoriesRepository {
     });
   }
 
-  async update(id: string, data: Prisma.CategoryUpdateInput): Promise<Category> {
+  async update(
+    id: string,
+    data: Prisma.CategoryUpdateInput,
+  ): Promise<Category> {
     return this.client.category.update({
       where: { id },
       data,

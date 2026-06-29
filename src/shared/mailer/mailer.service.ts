@@ -20,7 +20,10 @@ Body:
     `);
   }
 
-  async sendWelcomeInvitationEmail(email: string, token: string): Promise<void> {
+  async sendWelcomeInvitationEmail(
+    email: string,
+    token: string,
+  ): Promise<void> {
     const inviteUrl = `http://localhost:3000/api/v1/auth/accept-invitation?token=${token}`;
     this.logger.log(`
 =========================================

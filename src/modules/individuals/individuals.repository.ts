@@ -43,7 +43,10 @@ export class IndividualsRepository {
     });
   }
 
-  async update(id: string, data: Prisma.IndividualUpdateInput): Promise<Individual> {
+  async update(
+    id: string,
+    data: Prisma.IndividualUpdateInput,
+  ): Promise<Individual> {
     return this.client.individual.update({
       where: { id },
       data,

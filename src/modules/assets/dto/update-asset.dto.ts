@@ -8,7 +8,9 @@ export class UpdateAssetDto {
   @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Updated serial / identification number' })
+  @ApiPropertyOptional({
+    description: 'Updated serial / identification number',
+  })
   @IsString()
   @IsOptional()
   serialNumber?: string;

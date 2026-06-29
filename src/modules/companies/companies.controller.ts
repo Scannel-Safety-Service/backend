@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { CompaniesService } from './companies.service';
@@ -37,7 +42,9 @@ export class CompaniesController {
 
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Get details of a company (Super Admin or matching Company Admin)' })
+  @ApiOperation({
+    summary: 'Get details of a company (Super Admin or matching Company Admin)',
+  })
   async findOne(@Param('id') id: string) {
     const company = await this.companiesService.findOne(id);
     return {
@@ -48,7 +55,9 @@ export class CompaniesController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Update company settings (Super Admin or matching Company Admin)' })
+  @ApiOperation({
+    summary: 'Update company settings (Super Admin or matching Company Admin)',
+  })
   async update(@Param('id') id: string, @Body() dto: UpdateCompanyDto) {
     const company = await this.companiesService.update(id, dto);
     return {

@@ -1,6 +1,19 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -40,7 +53,10 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 409, description: 'Conflict' })
-  async register(@Body() dto: RegisterDto, @CurrentUser() creator: AuthenticatedUser) {
+  async register(
+    @Body() dto: RegisterDto,
+    @CurrentUser() creator: AuthenticatedUser,
+  ) {
     const user = await this.authService.register(dto, creator);
     return {
       message: 'User registered successfully',
@@ -57,7 +73,12 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refresh(@Req() req: any) {
     const { userId, companyId, role, refreshToken } = req.user;
-    const tokens = await this.authService.refresh(userId, companyId, role, refreshToken);
+    const tokens = await this.authService.refresh(
+      userId,
+      companyId,
+      role,
+      refreshToken,
+    );
     return {
       message: 'Tokens rotated successfully',
       data: tokens,
@@ -80,8 +101,13 @@ export class AuthController {
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request a password reset email (Anti-enumeration)' })
-  @ApiResponse({ status: 200, description: 'If the email exists, a reset link will be sent' })
+  @ApiOperation({
+    summary: 'Request a password reset email (Anti-enumeration)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'If the email exists, a reset link will be sent',
+  })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     await this.authService.forgotPassword(dto);
     return {
@@ -108,7 +134,10 @@ export class AuthController {
   @Post('accept-invitation')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Accept account invitation and set password' })
-  @ApiResponse({ status: 200, description: 'Invitation accepted and password set' })
+  @ApiResponse({
+    status: 200,
+    description: 'Invitation accepted and password set',
+  })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async acceptInvitation(@Body() dto: AcceptInvitationDto) {
     await this.authService.acceptInvitation(dto);

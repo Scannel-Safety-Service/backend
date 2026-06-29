@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Project, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { Role } from '../../common/enums/role.enum';
@@ -20,7 +24,10 @@ export class ProjectsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async create(dto: CreateProjectDto, caller: AuthenticatedUser): Promise<Project> {
+  async create(
+    dto: CreateProjectDto,
+    caller: AuthenticatedUser,
+  ): Promise<Project> {
     let companyId: string;
 
     if (caller.role === Role.SUPER_ADMIN) {
@@ -37,7 +44,9 @@ export class ProjectsService {
       }
     } else {
       if (!caller.companyId) {
-        throw new BadRequestException('Caller must belong to a company to create a project');
+        throw new BadRequestException(
+          'Caller must belong to a company to create a project',
+        );
       }
       companyId = caller.companyId;
     }
@@ -81,14 +90,17 @@ export class ProjectsService {
     const items = await this.repository.findMany(where);
 
     // Group projects by year (yearwise categorization)
-    const grouped = items.reduce((acc, project) => {
-      const yearStr = project.year.toString();
-      if (!acc[yearStr]) {
-        acc[yearStr] = [];
-      }
-      acc[yearStr].push(project);
-      return acc;
-    }, {} as Record<string, Project[]>);
+    const grouped = items.reduce(
+      (acc, project) => {
+        const yearStr = project.year.toString();
+        if (!acc[yearStr]) {
+          acc[yearStr] = [];
+        }
+        acc[yearStr].push(project);
+        return acc;
+      },
+      {} as Record<string, Project[]>,
+    );
 
     return {
       projectsByYear: grouped,
@@ -140,7 +152,9 @@ export class ProjectsService {
   async permanentDelete(id: string): Promise<void> {
     const project = await this.findOne(id);
     if (project.archivedAt === null) {
-      throw new BadRequestException('Project must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Project must be archived first before permanent deletion',
+      );
     }
     await this.repository.delete(id);
   }
@@ -172,7 +186,8 @@ export class ProjectsService {
     }
 
     // Save the physical file
-    const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+    const { fileUrl, originalFileName } =
+      await this.storageService.saveFile(file);
 
     // Map folder name to DocumentSection enum where applicable, default to COMPANY_DOCUMENTS
     let section: any = 'COMPANY_DOCUMENTS';

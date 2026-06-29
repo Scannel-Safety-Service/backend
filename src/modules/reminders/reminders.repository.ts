@@ -43,7 +43,10 @@ export class RemindersRepository {
     });
   }
 
-  async update(id: string, data: Prisma.ReminderUpdateInput): Promise<Reminder> {
+  async update(
+    id: string,
+    data: Prisma.ReminderUpdateInput,
+  ): Promise<Reminder> {
     return this.client.reminder.update({
       where: { id },
       data,

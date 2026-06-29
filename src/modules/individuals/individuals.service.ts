@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Individual } from '@prisma/client';
 import { CreateIndividualDto } from './dto/create-individual.dto';
 import { UpdateIndividualDto } from './dto/update-individual.dto';
@@ -40,7 +44,11 @@ export class IndividualsService {
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
-    const [items, total] = await this.repository.findAndCount(where, page, limit);
+    const [items, total] = await this.repository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     return {
       items,
@@ -96,7 +104,9 @@ export class IndividualsService {
   async permanentDelete(id: string): Promise<void> {
     const individual = await this.findOne(id);
     if (individual.archivedAt === null) {
-      throw new BadRequestException('Individual must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Individual must be archived first before permanent deletion',
+      );
     }
 
     // Delete associated reminders first

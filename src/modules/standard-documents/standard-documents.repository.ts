@@ -33,13 +33,18 @@ export class StandardDocumentsRepository {
     });
   }
 
-  async create(data: Prisma.StandardDocumentCreateInput): Promise<StandardDocument> {
+  async create(
+    data: Prisma.StandardDocumentCreateInput,
+  ): Promise<StandardDocument> {
     return this.prisma.standardDocument.create({
       data,
     });
   }
 
-  async update(id: string, data: Prisma.StandardDocumentUpdateInput): Promise<StandardDocument> {
+  async update(
+    id: string,
+    data: Prisma.StandardDocumentUpdateInput,
+  ): Promise<StandardDocument> {
     return this.prisma.standardDocument.update({
       where: { id },
       data,

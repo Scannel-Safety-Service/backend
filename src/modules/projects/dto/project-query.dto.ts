@@ -3,7 +3,10 @@ import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ProjectQueryDto {
-  @ApiPropertyOptional({ description: 'Filter by archive status: "true", "false", or "all" (default: "false")' })
+  @ApiPropertyOptional({
+    description:
+      'Filter by archive status: "true", "false", or "all" (default: "false")',
+  })
   @IsString()
   @IsOptional()
   archived?: string;
@@ -16,7 +19,9 @@ export class ProjectQueryDto {
   @IsOptional()
   year?: number;
 
-  @ApiPropertyOptional({ description: 'Optional company ID (accessible only by Super Admin)' })
+  @ApiPropertyOptional({
+    description: 'Optional company ID (accessible only by Super Admin)',
+  })
   @IsUUID()
   @IsOptional()
   companyId?: string;

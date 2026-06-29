@@ -2,12 +2,17 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateReminderDto {
-  @ApiPropertyOptional({ description: 'Optional user ID if reminder belongs to a user' })
+  @ApiPropertyOptional({
+    description: 'Optional user ID if reminder belongs to a user',
+  })
   @IsUUID()
   @IsOptional()
   userId?: string | null;
 
-  @ApiPropertyOptional({ description: 'Optional individual ID if reminder belongs to a dependent/sub-record' })
+  @ApiPropertyOptional({
+    description:
+      'Optional individual ID if reminder belongs to a dependent/sub-record',
+  })
   @IsUUID()
   @IsOptional()
   individualId?: string | null;
@@ -17,7 +22,9 @@ export class UpdateReminderDto {
   @IsOptional()
   title?: string;
 
-  @ApiPropertyOptional({ description: 'Optional detailed description of the reminder' })
+  @ApiPropertyOptional({
+    description: 'Optional detailed description of the reminder',
+  })
   @IsString()
   @IsOptional()
   description?: string;
