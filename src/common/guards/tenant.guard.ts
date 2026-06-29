@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Role } from '../enums/role.enum';
 
 @Injectable()
@@ -27,7 +32,11 @@ export class TenantGuard implements CanActivate {
     }
 
     // 2. Enforce match on company resources (e.g. /companies/:id)
-    if (path.includes('/companies/:id') && params.id && params.id !== user.companyId) {
+    if (
+      path.includes('/companies/:id') &&
+      params.id &&
+      params.id !== user.companyId
+    ) {
       throw new NotFoundException('Resource not found');
     }
 

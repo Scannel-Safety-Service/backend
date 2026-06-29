@@ -1,6 +1,25 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { CreateStandardDocumentDto } from './dto/create-standard-document.dto';
@@ -32,7 +51,9 @@ export class StandardDocumentsController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
-  @ApiOperation({ summary: 'List global template documents (accessible by all users)' })
+  @ApiOperation({
+    summary: 'List global template documents (accessible by all users)',
+  })
   async findAll(@Query() queryDto: StandardDocumentQueryDto) {
     const result = await this.standardDocsService.findAll(queryDto);
     return {
@@ -56,7 +77,10 @@ export class StandardDocumentsController {
   @Roles(Role.SUPER_ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Update global template or replace template file (Super Admin only)' })
+  @ApiOperation({
+    summary:
+      'Update global template or replace template file (Super Admin only)',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateStandardDocumentDto,
@@ -71,7 +95,9 @@ export class StandardDocumentsController {
 
   @Patch(':id/archive')
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Soft archive a global template (Super Admin only)' })
+  @ApiOperation({
+    summary: 'Soft archive a global template (Super Admin only)',
+  })
   async archive(@Param('id') id: string) {
     const doc = await this.standardDocsService.archive(id);
     return {
@@ -82,7 +108,9 @@ export class StandardDocumentsController {
 
   @Patch(':id/restore')
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Restore an archived global template (Super Admin only)' })
+  @ApiOperation({
+    summary: 'Restore an archived global template (Super Admin only)',
+  })
   async restore(@Param('id') id: string) {
     const doc = await this.standardDocsService.restore(id);
     return {
@@ -94,8 +122,14 @@ export class StandardDocumentsController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Permanently delete a global template (Super Admin only, must be archived first)' })
-  @ApiResponse({ status: 204, description: 'Global template permanently deleted' })
+  @ApiOperation({
+    summary:
+      'Permanently delete a global template (Super Admin only, must be archived first)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Global template permanently deleted',
+  })
   async permanentDelete(@Param('id') id: string) {
     await this.standardDocsService.permanentDelete(id);
   }

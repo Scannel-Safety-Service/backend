@@ -8,19 +8,27 @@ export class IndividualQueryDto {
   @IsOptional()
   userId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by archived status. Defaults to active only.' })
+  @ApiPropertyOptional({
+    description: 'Filter by archived status. Defaults to active only.',
+  })
   @IsOptional()
   @IsString()
   archived?: 'true' | 'false' | 'all';
 
-  @ApiPropertyOptional({ example: 1, description: 'Page number for pagination' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Page number for pagination',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @IsOptional()
   page?: number = 1;
 
-  @ApiPropertyOptional({ example: 10, description: 'Number of records per page' })
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Number of records per page',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

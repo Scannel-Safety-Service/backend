@@ -1,7 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { AssetCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsISO8601, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 /**
  * Expiry status filter — maps to the Module 2 Traffic Light System.
@@ -11,9 +18,9 @@ import { IsEnum, IsInt, IsISO8601, IsOptional, IsString, Min } from 'class-valid
  * DEFAULT amber threshold = 30 days (configurable in Module 2).
  */
 export enum AssetExpiryStatus {
-  EXPIRED = 'expired',   // expiryDate < now()
+  EXPIRED = 'expired', // expiryDate < now()
   EXPIRING = 'expiring', // now() <= expiryDate <= now() + amberThresholdDays
-  VALID = 'valid',       // expiryDate > now() + amberThresholdDays
+  VALID = 'valid', // expiryDate > now() + amberThresholdDays
 }
 
 export class AssetQueryDto {
@@ -37,7 +44,8 @@ export class AssetQueryDto {
   expiryStatus?: AssetExpiryStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by archived state. Defaults to active (non-archived) only.',
+    description:
+      'Filter by archived state. Defaults to active (non-archived) only.',
   })
   @IsString()
   @IsOptional()
@@ -60,7 +68,8 @@ export class AssetQueryDto {
 
   @ApiPropertyOptional({
     example: '2026-12-31T23:59:59.999Z',
-    description: 'Filter assets with expiryDate on or before this ISO-8601 date',
+    description:
+      'Filter assets with expiryDate on or before this ISO-8601 date',
   })
   @IsISO8601()
   @IsOptional()

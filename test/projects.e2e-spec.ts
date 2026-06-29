@@ -93,7 +93,7 @@ describe('Projects (e2e)', () => {
 
       expect(res.body.data).toBeDefined();
       expect(res.body.data.folders).toHaveLength(13);
-      
+
       const folderNames = res.body.data.folders.map((f: any) => f.name);
       expect(folderNames).toContain('Preliminary Plan');
       expect(folderNames).toContain('MSDS');
@@ -116,7 +116,11 @@ describe('Projects (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(`/api/v1/projects/${acmeProjectId}/folders/${folderId}/documents`)
         .set('Authorization', `Bearer ${acmeAdminToken}`)
-        .attach('file', Buffer.from('dummy project safety document content'), 'safety-plan.pdf')
+        .attach(
+          'file',
+          Buffer.from('dummy project safety document content'),
+          'safety-plan.pdf',
+        )
         .field('description', 'Acme safety roadmap')
         .expect(201);
 
@@ -147,7 +151,9 @@ describe('Projects (e2e)', () => {
 
       expect(res.body.data.projectsByYear).toBeDefined();
       expect(res.body.data.projectsByYear['2026']).toBeDefined();
-      const projectNames = res.body.data.projectsByYear['2026'].map((p: any) => p.name);
+      const projectNames = res.body.data.projectsByYear['2026'].map(
+        (p: any) => p.name,
+      );
       expect(projectNames).toContain('Construction Site Phase 1');
     });
   });

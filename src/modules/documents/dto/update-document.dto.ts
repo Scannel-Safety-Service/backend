@@ -2,7 +2,9 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateDocumentDto {
-  @ApiPropertyOptional({ description: 'Optional display title of the document' })
+  @ApiPropertyOptional({
+    description: 'Optional display title of the document',
+  })
   @IsString()
   @IsOptional()
   title?: string;
@@ -17,7 +19,9 @@ export class UpdateDocumentDto {
   @IsOptional()
   categoryId?: string | null;
 
-  @ApiPropertyOptional({ description: 'Optional user ID if this document is scoped to a user' })
+  @ApiPropertyOptional({
+    description: 'Optional user ID if this document is scoped to a user',
+  })
   @IsUUID()
   @IsOptional()
   userId?: string | null;
@@ -27,7 +31,11 @@ export class UpdateDocumentDto {
   @IsOptional()
   isReviewed?: boolean;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Optional new file to replace the existing file' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Optional new file to replace the existing file',
+  })
   @IsOptional()
   file?: any;
 }

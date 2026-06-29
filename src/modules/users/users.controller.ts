@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -14,7 +30,10 @@ export class UsersController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
-  @ApiOperation({ summary: 'List and filter users (auto-scoped to caller company except Super Admin)' })
+  @ApiOperation({
+    summary:
+      'List and filter users (auto-scoped to caller company except Super Admin)',
+  })
   async findAll(@Query() queryDto: UserQueryDto) {
     const result = await this.usersService.findAll(queryDto);
     return {
@@ -70,7 +89,9 @@ export class UsersController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Irreversibly delete a user (must be archived first)' })
+  @ApiOperation({
+    summary: 'Irreversibly delete a user (must be archived first)',
+  })
   @ApiResponse({ status: 204, description: 'User permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.usersService.permanentDelete(id);

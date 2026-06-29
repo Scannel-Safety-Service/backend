@@ -14,7 +14,9 @@ export class StorageService {
     }
   }
 
-  async saveFile(file: Express.Multer.File): Promise<{ fileUrl: string; originalFileName: string }> {
+  async saveFile(
+    file: Express.Multer.File,
+  ): Promise<{ fileUrl: string; originalFileName: string }> {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const filename = `${uniqueSuffix}${ext}`;

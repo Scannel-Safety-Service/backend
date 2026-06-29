@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AssetCategory } from '@prisma/client';
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateAssetDto {
   @ApiProperty({
@@ -28,7 +35,8 @@ export class CreateAssetDto {
   category: AssetCategory;
 
   @ApiProperty({
-    description: 'Detailed description of the asset — make, model, location, etc.',
+    description:
+      'Detailed description of the asset — make, model, location, etc.',
     example: 'Manitou MT 1840 — Yard A, Bay 3',
   })
   @IsString()
@@ -36,7 +44,8 @@ export class CreateAssetDto {
   description: string;
 
   @ApiProperty({
-    description: 'ISO-8601 date string for the asset certificate / calibration expiry date',
+    description:
+      'ISO-8601 date string for the asset certificate / calibration expiry date',
     example: '2026-12-31T00:00:00.000Z',
   })
   @IsDateString()
@@ -50,4 +59,3 @@ export class CreateAssetDto {
   @IsOptional()
   companyId?: string;
 }
-

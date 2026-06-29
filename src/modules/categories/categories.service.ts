@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Category, DocumentSection } from '@prisma/client';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -13,12 +17,20 @@ export class CategoriesService {
   constructor(
     private readonly categoriesRepository: CategoriesRepository,
     private readonly prismaService: TenantPrismaService,
-  ) { }
+  ) {}
 
-  async create(dto: CreateCategoryDto, creator: AuthenticatedUser): Promise<Category> {
+  async create(
+    dto: CreateCategoryDto,
+    creator: AuthenticatedUser,
+  ): Promise<Category> {
     // Validate section
-    if (dto.section !== DocumentSection.COMPANY_DOCUMENTS && dto.section !== DocumentSection.RISK_ASSESSMENT) {
-      throw new BadRequestException('Categories can only be created in COMPANY_DOCUMENTS or RISK_ASSESSMENT sections');
+    if (
+      dto.section !== DocumentSection.COMPANY_DOCUMENTS &&
+      dto.section !== DocumentSection.RISK_ASSESSMENT
+    ) {
+      throw new BadRequestException(
+        'Categories can only be created in COMPANY_DOCUMENTS or RISK_ASSESSMENT sections',
+      );
     }
 
     // If Company Admin, they can only assign categories to users in their own company.
@@ -32,7 +44,9 @@ export class CategoriesService {
       });
 
       if (allowedUsersCount !== dto.userIds.length) {
-        throw new BadRequestException('Some assigned users do not exist or do not belong to your company');
+        throw new BadRequestException(
+          'Some assigned users do not exist or do not belong to your company',
+        );
       }
     }
 
@@ -42,14 +56,16 @@ export class CategoriesService {
       assignToAll: dto.assignToAll,
       createdBy: { connect: { id: creator.userId } },
 
-      company: creator.companyId ? { connect: { id: creator.companyId } } : undefined,
+      company: creator.companyId
+        ? { connect: { id: creator.companyId } }
+        : undefined,
     };
 
     const category = await this.categoriesRepository.create(data);
 
     // Create user assignments if not assignToAll and userIds are provided
     if (!dto.assignToAll && dto.userIds && dto.userIds.length > 0) {
-      const assignmentData = dto.userIds.map(userId => ({
+      const assignmentData = dto.userIds.map((userId) => ({
         categoryId: category.id,
         userId,
       }));
@@ -70,7 +86,10 @@ export class CategoriesService {
 
     // Apply security check: if the caller is not an Admin, they can ONLY query categories assigned to themselves
     let targetUserId = queryDto.userId;
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       targetUserId = caller.userId;
     }
 
@@ -89,7 +108,7 @@ export class CategoriesService {
           OR: [
             { companyId: null },
             targetUserCompanyId ? { companyId: targetUserCompanyId } : {},
-          ].filter(Boolean) as Prisma.CategoryWhereInput[],
+          ].filter(Boolean),
         },
         {
           assignments: {
@@ -114,7 +133,11 @@ export class CategoriesService {
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
-    const [items, total] = await this.categoriesRepository.findAndCount(where, page, limit);
+    const [items, total] = await this.categoriesRepository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     return {
       items,
@@ -135,17 +158,29 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, dto: UpdateCategoryDto, updater: AuthenticatedUser): Promise<Category> {
+  async update(
+    id: string,
+    dto: UpdateCategoryDto,
+    updater: AuthenticatedUser,
+  ): Promise<Category> {
     const category = await this.findOne(id);
 
     // If category is global, only SUPER_ADMIN can update it.
     if (category.companyId === null && updater.role !== Role.SUPER_ADMIN) {
-      throw new BadRequestException('Only Super Admins can update global categories');
+      throw new BadRequestException(
+        'Only Super Admins can update global categories',
+      );
     }
 
     // Validate section if updated
-    if (dto.section && dto.section !== DocumentSection.COMPANY_DOCUMENTS && dto.section !== DocumentSection.RISK_ASSESSMENT) {
-      throw new BadRequestException('Categories can only belong to COMPANY_DOCUMENTS or RISK_ASSESSMENT sections');
+    if (
+      dto.section &&
+      dto.section !== DocumentSection.COMPANY_DOCUMENTS &&
+      dto.section !== DocumentSection.RISK_ASSESSMENT
+    ) {
+      throw new BadRequestException(
+        'Categories can only belong to COMPANY_DOCUMENTS or RISK_ASSESSMENT sections',
+      );
     }
 
     // Verify user ids are valid and belong to the company
@@ -158,7 +193,9 @@ export class CategoriesService {
       });
 
       if (allowedUsersCount !== dto.userIds.length) {
-        throw new BadRequestException('Some assigned users do not exist or do not belong to your company');
+        throw new BadRequestException(
+          'Some assigned users do not exist or do not belong to your company',
+        );
       }
     }
 
@@ -170,7 +207,8 @@ export class CategoriesService {
     await this.categoriesRepository.update(id, updateData);
 
     // Sync assignments
-    const finalAssignToAll = dto.assignToAll !== undefined ? dto.assignToAll : category.assignToAll;
+    const finalAssignToAll =
+      dto.assignToAll !== undefined ? dto.assignToAll : category.assignToAll;
 
     if (finalAssignToAll) {
       // Delete all specific user assignments if assignToAll is enabled
@@ -179,14 +217,19 @@ export class CategoriesService {
       });
     } else if (dto.userIds !== undefined) {
       // Synchronize the CategoryUser junction table records
-      const existingAssignments = await this.prismaService.client.categoryUser.findMany({
-        where: { categoryId: id },
-        select: { userId: true },
-      });
-      const existingUserIds = existingAssignments.map(a => a.userId);
+      const existingAssignments =
+        await this.prismaService.client.categoryUser.findMany({
+          where: { categoryId: id },
+          select: { userId: true },
+        });
+      const existingUserIds = existingAssignments.map((a) => a.userId);
 
-      const toAdd = dto.userIds.filter(userId => !existingUserIds.includes(userId));
-      const toRemove = existingUserIds.filter(userId => !dto.userIds!.includes(userId));
+      const toAdd = dto.userIds.filter(
+        (userId) => !existingUserIds.includes(userId),
+      );
+      const toRemove = existingUserIds.filter(
+        (userId) => !dto.userIds!.includes(userId),
+      );
 
       if (toRemove.length > 0) {
         await this.prismaService.client.categoryUser.deleteMany({
@@ -199,7 +242,7 @@ export class CategoriesService {
 
       if (toAdd.length > 0) {
         await this.prismaService.client.categoryUser.createMany({
-          data: toAdd.map(userId => ({
+          data: toAdd.map((userId) => ({
             categoryId: id,
             userId,
           })),
@@ -213,7 +256,9 @@ export class CategoriesService {
   async archive(id: string, user: AuthenticatedUser): Promise<Category> {
     const category = await this.findOne(id);
     if (category.companyId === null && user.role !== Role.SUPER_ADMIN) {
-      throw new BadRequestException('Only Super Admins can archive global categories');
+      throw new BadRequestException(
+        'Only Super Admins can archive global categories',
+      );
     }
     if (category.archivedAt !== null) {
       throw new BadRequestException('Category is already archived');
@@ -227,7 +272,9 @@ export class CategoriesService {
   async restore(id: string, user: AuthenticatedUser): Promise<Category> {
     const category = await this.findOne(id);
     if (category.companyId === null && user.role !== Role.SUPER_ADMIN) {
-      throw new BadRequestException('Only Super Admins can restore global categories');
+      throw new BadRequestException(
+        'Only Super Admins can restore global categories',
+      );
     }
     if (category.archivedAt === null) {
       throw new BadRequestException('Category is not archived');
@@ -241,10 +288,14 @@ export class CategoriesService {
   async permanentDelete(id: string, user: AuthenticatedUser): Promise<void> {
     const category = await this.findOne(id);
     if (category.companyId === null && user.role !== Role.SUPER_ADMIN) {
-      throw new BadRequestException('Only Super Admins can permanently delete global categories');
+      throw new BadRequestException(
+        'Only Super Admins can permanently delete global categories',
+      );
     }
     if (category.archivedAt === null) {
-      throw new BadRequestException('Category must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Category must be archived first before permanent deletion',
+      );
     }
 
     await this.categoriesRepository.delete(id);

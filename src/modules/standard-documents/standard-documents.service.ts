@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, StandardDocument } from '@prisma/client';
 import { CreateStandardDocumentDto } from './dto/create-standard-document.dto';
 import { UpdateStandardDocumentDto } from './dto/update-standard-document.dto';
@@ -13,12 +17,16 @@ export class StandardDocumentsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async create(dto: CreateStandardDocumentDto, file: Express.Multer.File): Promise<StandardDocument> {
+  async create(
+    dto: CreateStandardDocumentDto,
+    file: Express.Multer.File,
+  ): Promise<StandardDocument> {
     if (!file) {
       throw new BadRequestException('File upload is required');
     }
 
-    const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+    const { fileUrl, originalFileName } =
+      await this.storageService.saveFile(file);
 
     return this.repository.create({
       title: dto.title,
@@ -45,7 +53,11 @@ export class StandardDocumentsService {
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
-    const [items, total] = await this.repository.findAndCount(where, page, limit);
+    const [items, total] = await this.repository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     return {
       items,
@@ -66,7 +78,11 @@ export class StandardDocumentsService {
     return doc;
   }
 
-  async update(id: string, dto: UpdateStandardDocumentDto, file?: Express.Multer.File): Promise<StandardDocument> {
+  async update(
+    id: string,
+    dto: UpdateStandardDocumentDto,
+    file?: Express.Multer.File,
+  ): Promise<StandardDocument> {
     const doc = await this.findOne(id);
 
     const updateData: Prisma.StandardDocumentUpdateInput = {};
@@ -75,7 +91,8 @@ export class StandardDocumentsService {
     if (dto.description !== undefined) updateData.description = dto.description;
 
     if (file) {
-      const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+      const { fileUrl, originalFileName } =
+        await this.storageService.saveFile(file);
       updateData.fileUrl = fileUrl;
       updateData.originalFileName = originalFileName;
 
@@ -111,7 +128,9 @@ export class StandardDocumentsService {
   async permanentDelete(id: string): Promise<void> {
     const doc = await this.findOne(id);
     if (doc.archivedAt === null) {
-      throw new BadRequestException('Template must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Template must be archived first before permanent deletion',
+      );
     }
 
     // Physically delete file

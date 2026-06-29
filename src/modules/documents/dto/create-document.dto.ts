@@ -7,7 +7,9 @@ export class CreateDocumentDto {
   @IsEnum(DocumentSection)
   section: DocumentSection;
 
-  @ApiPropertyOptional({ description: 'Optional display title of the document' })
+  @ApiPropertyOptional({
+    description: 'Optional display title of the document',
+  })
   @IsString()
   @IsOptional()
   title?: string;
@@ -22,17 +24,25 @@ export class CreateDocumentDto {
   @IsOptional()
   categoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Optional user ID if this document is scoped to a user' })
+  @ApiPropertyOptional({
+    description: 'Optional user ID if this document is scoped to a user',
+  })
   @IsUUID()
   @IsOptional()
   userId?: string;
 
-  @ApiPropertyOptional({ description: 'Optional company ID (required for Super Admin)' })
+  @ApiPropertyOptional({
+    description: 'Optional company ID (required for Super Admin)',
+  })
   @IsUUID()
   @IsOptional()
   companyId?: string;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'The document file to upload' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'The document file to upload',
+  })
   @IsOptional()
   file?: any;
 }

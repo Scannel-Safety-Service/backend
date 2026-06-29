@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Asset, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { Role } from '../../common/enums/role.enum';
@@ -70,7 +75,8 @@ export class AssetsService {
     // Explicit date-range filter (for external queries, e.g. report exports)
     if (queryDto.expiryFrom || queryDto.expiryTo) {
       where.expiryDate = {};
-      if (queryDto.expiryFrom) where.expiryDate.gte = new Date(queryDto.expiryFrom);
+      if (queryDto.expiryFrom)
+        where.expiryDate.gte = new Date(queryDto.expiryFrom);
       if (queryDto.expiryTo) where.expiryDate.lte = new Date(queryDto.expiryTo);
     }
 
@@ -97,7 +103,11 @@ export class AssetsService {
     const page = queryDto.page ?? 1;
     const limit = queryDto.limit ?? 10;
 
-    const [items, total] = await this.repository.findAndCount(where, page, limit);
+    const [items, total] = await this.repository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     // Annotate each asset with its computed traffic-light status
     // This is consumed directly by dashboards — Module 2 will centralise this
@@ -107,7 +117,11 @@ export class AssetsService {
 
     const annotatedItems = items.map((asset: any) => ({
       ...asset,
-      expiryStatus: this.computeExpiryStatus(new Date(asset.expiryDate), now, amberCutoff),
+      expiryStatus: this.computeExpiryStatus(
+        new Date(asset.expiryDate),
+        now,
+        amberCutoff,
+      ),
     }));
 
     return {
@@ -133,7 +147,11 @@ export class AssetsService {
 
     return {
       ...asset,
-      expiryStatus: this.computeExpiryStatus(new Date(asset.expiryDate), now, amberCutoff),
+      expiryStatus: this.computeExpiryStatus(
+        new Date(asset.expiryDate),
+        now,
+        amberCutoff,
+      ),
     };
   }
 
@@ -145,7 +163,8 @@ export class AssetsService {
     if (dto.serialNumber !== undefined) data.serialNumber = dto.serialNumber;
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.expiryDate !== undefined) data.expiryDate = new Date(dto.expiryDate);
+    if (dto.expiryDate !== undefined)
+      data.expiryDate = new Date(dto.expiryDate);
 
     return this.repository.update(id, data);
   }
@@ -169,7 +188,9 @@ export class AssetsService {
   async permanentDelete(id: string): Promise<void> {
     const asset = await this.findOne(id);
     if (asset.archivedAt === null) {
-      throw new BadRequestException('Asset must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Asset must be archived first before permanent deletion',
+      );
     }
     await this.repository.delete(id);
   }
@@ -196,14 +217,20 @@ export class AssetsService {
     }
 
     // Verify asset belongs to the tenant (scoped findUnique will 404 if not)
-    await this.findOne(assetId);
+    const asset = await this.findOne(assetId);
 
-    // Determine companyId from caller context
-    if (!caller.companyId) {
-      throw new BadRequestException('Caller must belong to a company to upload files');
+    // Determine companyId from caller context or fall back to asset's companyId for SUPER_ADMIN
+    let companyId = caller.companyId;
+    if (caller.role === Role.SUPER_ADMIN) {
+      companyId = asset.companyId;
+    } else if (!companyId) {
+      throw new BadRequestException(
+        'Caller must belong to a company to upload files',
+      );
     }
 
-    const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+    const { fileUrl, originalFileName } =
+      await this.storageService.saveFile(file);
 
     this.logger.log(
       `Rapid-entry file saved for asset ${assetId}: ${originalFileName} by user ${caller.userId}`,
@@ -218,16 +245,18 @@ export class AssetsService {
         title: originalFileName,
         originalFileName,
         fileUrl,
-        // Documents uploaded via rapid-entry go under COMPANY_DOCUMENTS by default.
+        // Documents uploaded via rapid-entry go under ASSET_DOCUMENTS by default.
         // Admins can later re-categorise via PATCH /documents/:id.
-        section: 'COMPANY_DOCUMENTS',
-        companyId: caller.companyId,
+        section: 'ASSET_DOCUMENTS',
+        companyId,
         assetId,
         userId: caller.userId,
       } as any,
     });
 
-    this.logger.log(`Document record ${document.id} created for asset ${assetId}`);
+    this.logger.log(
+      `Document record ${document.id} created for asset ${assetId}`,
+    );
 
     return document;
   }

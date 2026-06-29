@@ -3,7 +3,9 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UserQueryDto {
-  @ApiPropertyOptional({ description: 'Filter users by first name or last name substring' })
+  @ApiPropertyOptional({
+    description: 'Filter users by first name or last name substring',
+  })
   @IsString()
   @IsOptional()
   name?: string;
@@ -18,14 +20,20 @@ export class UserQueryDto {
   @IsOptional()
   userCode?: string;
 
-  @ApiPropertyOptional({ example: 1, description: 'Page number for pagination' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Page number for pagination',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @IsOptional()
   page?: number = 1;
 
-  @ApiPropertyOptional({ example: 10, description: 'Number of records per page' })
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Number of records per page',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

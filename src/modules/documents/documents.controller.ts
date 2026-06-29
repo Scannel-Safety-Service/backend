@@ -1,6 +1,25 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -26,7 +45,11 @@ export class DocumentsController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() caller: AuthenticatedUser,
   ) {
-    const document = await this.documentsService.create(createDocumentDto, file, caller);
+    const document = await this.documentsService.create(
+      createDocumentDto,
+      file,
+      caller,
+    );
     return {
       message: 'Document uploaded successfully',
       data: document,
@@ -65,14 +88,21 @@ export class DocumentsController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Update document metadata or replace uploaded file' })
+  @ApiOperation({
+    summary: 'Update document metadata or replace uploaded file',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
     @CurrentUser() caller: AuthenticatedUser,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const document = await this.documentsService.update(id, updateDocumentDto, caller, file);
+    const document = await this.documentsService.update(
+      id,
+      updateDocumentDto,
+      caller,
+      file,
+    );
     return {
       message: 'Document updated successfully',
       data: document,
@@ -110,7 +140,9 @@ export class DocumentsController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Permanently delete a document (must be archived first)' })
+  @ApiOperation({
+    summary: 'Permanently delete a document (must be archived first)',
+  })
   @ApiResponse({ status: 204, description: 'Document permanently deleted' })
   async permanentDelete(
     @Param('id') id: string,

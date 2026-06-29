@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
@@ -35,7 +39,11 @@ export class UsersService {
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
-    const [items, total] = await this.usersRepository.findAndCount(where, page, limit);
+    const [items, total] = await this.usersRepository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     return {
       items,
@@ -57,7 +65,10 @@ export class UsersService {
     return result;
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<Omit<User, 'passwordHash'>> {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+  ): Promise<Omit<User, 'passwordHash'>> {
     // Verify user exists (throws NotFoundException if not)
     await this.findOne(id);
 
@@ -101,7 +112,9 @@ export class UsersService {
   async permanentDelete(id: string): Promise<void> {
     const user = await this.findOne(id);
     if (user.archivedAt === null) {
-      throw new BadRequestException('User must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'User must be archived first before permanent deletion',
+      );
     }
 
     await this.usersRepository.delete(id);
@@ -110,7 +123,9 @@ export class UsersService {
   async sendWelcomeEmail(id: string): Promise<void> {
     const user = await this.findOne(id);
     if (user.archivedAt !== null) {
-      throw new BadRequestException('Cannot send welcome email to an archived user');
+      throw new BadRequestException(
+        'Cannot send welcome email to an archived user',
+      );
     }
 
     const token = await this.authService.generateInvitationToken(user.id);

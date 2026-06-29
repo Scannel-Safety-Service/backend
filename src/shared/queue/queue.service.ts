@@ -18,13 +18,17 @@ export class QueueService {
    * Adds a job to the background queue processing off-thread.
    */
   async addJob(jobType: JobType, data: SeedProjectFoldersData): Promise<void> {
-    this.logger.log(`Enqueuing background job [${jobType}] for project ID ${data.projectId}`);
-    
+    this.logger.log(
+      `Enqueuing background job [${jobType}] for project ID ${data.projectId}`,
+    );
+
     // Execute asynchronously using setImmediate to ensure it runs off-thread
     setImmediate(() => {
       this.processJob(jobType, data)
         .then(() => {
-          this.logger.log(`Successfully completed job [${jobType}] for project ID ${data.projectId}`);
+          this.logger.log(
+            `Successfully completed job [${jobType}] for project ID ${data.projectId}`,
+          );
         })
         .catch((error) => {
           this.logger.error(
@@ -38,10 +42,13 @@ export class QueueService {
   /**
    * Worker logic that consumes background jobs.
    */
-  private async processJob(jobType: JobType, data: SeedProjectFoldersData): Promise<void> {
+  private async processJob(
+    jobType: JobType,
+    data: SeedProjectFoldersData,
+  ): Promise<void> {
     if (jobType === 'seed-project-folders') {
       const { projectId, companyId } = data;
-      
+
       const foldersToSeed = [
         'Preliminary Plan',
         'AF1/AF2',

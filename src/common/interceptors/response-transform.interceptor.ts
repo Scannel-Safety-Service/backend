@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -9,8 +14,14 @@ export interface ApiResponse<T> {
 }
 
 @Injectable()
-export class ResponseTransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
+export class ResponseTransformInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ApiResponse<T>> {
     const httpCtx = context.switchToHttp();
     const response = httpCtx.getResponse();
 
@@ -18,7 +29,12 @@ export class ResponseTransformInterceptor<T> implements NestInterceptor<T, ApiRe
       map((res) => {
         const statusCode = response.statusCode || 200;
 
-        if (res && typeof res === 'object' && 'data' in res && 'message' in res) {
+        if (
+          res &&
+          typeof res === 'object' &&
+          'data' in res &&
+          'message' in res
+        ) {
           return {
             statusCode,
             message: String(res.message),
@@ -26,7 +42,12 @@ export class ResponseTransformInterceptor<T> implements NestInterceptor<T, ApiRe
           };
         }
 
-        if (res && typeof res === 'object' && 'statusCode' in res && 'data' in res) {
+        if (
+          res &&
+          typeof res === 'object' &&
+          'statusCode' in res &&
+          'data' in res
+        ) {
           return res as ApiResponse<T>;
         }
 

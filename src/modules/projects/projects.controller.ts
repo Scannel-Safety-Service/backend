@@ -13,7 +13,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
@@ -32,8 +38,14 @@ export class ProjectsController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Create a new project record and trigger background folder seeding' })
-  async create(@Body() dto: CreateProjectDto, @CurrentUser() caller: AuthenticatedUser) {
+  @ApiOperation({
+    summary:
+      'Create a new project record and trigger background folder seeding',
+  })
+  async create(
+    @Body() dto: CreateProjectDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
     const project = await this.projectsService.create(dto, caller);
     return {
       message: 'Project created successfully',
@@ -43,8 +55,13 @@ export class ProjectsController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
-  @ApiOperation({ summary: 'List and filter active projects organized by calendar year' })
-  async findAll(@Query() queryDto: ProjectQueryDto, @CurrentUser() caller: AuthenticatedUser) {
+  @ApiOperation({
+    summary: 'List and filter active projects organized by calendar year',
+  })
+  async findAll(
+    @Query() queryDto: ProjectQueryDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
     const result = await this.projectsService.findAll(queryDto, caller);
     return {
       message: 'Projects retrieved successfully',
@@ -54,7 +71,10 @@ export class ProjectsController {
 
   @Get(':id/folders')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
-  @ApiOperation({ summary: 'Retrieve folders and their document structures for a specific project' })
+  @ApiOperation({
+    summary:
+      'Retrieve folders and their document structures for a specific project',
+  })
   async findFolders(@Param('id') id: string) {
     const project = await this.projectsService.findFolders(id);
     return {
@@ -99,7 +119,9 @@ export class ProjectsController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Permanently delete a project (must be archived first)' })
+  @ApiOperation({
+    summary: 'Permanently delete a project (must be archived first)',
+  })
   @ApiResponse({ status: 204, description: 'Project permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.projectsService.permanentDelete(id);
@@ -109,8 +131,13 @@ export class ProjectsController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a document directly into a specific project folder' })
-  @ApiResponse({ status: 201, description: 'Document uploaded and linked successfully' })
+  @ApiOperation({
+    summary: 'Upload a document directly into a specific project folder',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Document uploaded and linked successfully',
+  })
   async uploadDocument(
     @Param('projectId') projectId: string,
     @Param('folderId') folderId: string,
