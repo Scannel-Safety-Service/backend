@@ -25,6 +25,7 @@ import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateDocumentDto } from './dto/create-document.dto';
+import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentQueryDto } from './dto/document-query.dto';
 import { DocumentsService } from './documents.service';
@@ -52,6 +53,20 @@ export class DocumentsController {
     );
     return {
       message: 'Document uploaded successfully',
+      data: document,
+    };
+  }
+
+  @Post('from-standard')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Assign a standard document template to a user/company (creates a Document record linked to the template file)' })
+  async createFromStandard(
+    @Body() assignDto: AssignStandardDocumentDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    const document = await this.documentsService.createFromStandard(assignDto, caller);
+    return {
+      message: 'Standard document assigned successfully',
       data: document,
     };
   }
@@ -149,5 +164,17 @@ export class DocumentsController {
     @CurrentUser() caller: AuthenticatedUser,
   ) {
     await this.documentsService.permanentDelete(id, caller);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Directly delete a document without archiving' })
+  @ApiResponse({ status: 204, description: 'Document permanently deleted' })
+  async directDelete(
+    @Param('id') id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    await this.documentsService.directDelete(id, caller);
   }
 }

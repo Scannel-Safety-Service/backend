@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, User, Company } from '@prisma/client';
 import { TenantPrismaService } from '../../prisma/tenant-prisma.service';
 
 @Injectable()
@@ -49,6 +49,19 @@ export class UsersRepository {
   async findById(id: string): Promise<User | null> {
     return this.client.user.findUnique({
       where: { id },
+    });
+  }
+
+  async findByIdWithCompany(id: string): Promise<(User & { company: Company | null }) | null> {
+    return this.client.user.findUnique({
+      where: { id },
+      include: { company: true },
+    });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.client.user.findUnique({
+      where: { email },
     });
   }
 
