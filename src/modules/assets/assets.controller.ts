@@ -40,7 +40,9 @@ export class AssetsController {
   // ---------------------------------------------------------------------------
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Create a new asset record (auto-scoped to caller company)' })
+  @ApiOperation({
+    summary: 'Create a new asset record (auto-scoped to caller company)',
+  })
   async create(@Body() dto: CreateAssetDto) {
     const asset = await this.assetsService.create(dto);
     return {
@@ -74,7 +76,9 @@ export class AssetsController {
   // ---------------------------------------------------------------------------
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
-  @ApiOperation({ summary: 'Get full asset detail including attached documents' })
+  @ApiOperation({
+    summary: 'Get full asset detail including attached documents',
+  })
   async findOne(@Param('id') id: string) {
     const asset = await this.assetsService.findOne(id);
     return {
@@ -102,7 +106,10 @@ export class AssetsController {
   // ---------------------------------------------------------------------------
   @Patch(':id/archive')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Soft-archive an asset (reversible). Step 1 of double-gated deletion.' })
+  @ApiOperation({
+    summary:
+      'Soft-archive an asset (reversible). Step 1 of double-gated deletion.',
+  })
   async archive(@Param('id') id: string) {
     const asset = await this.assetsService.archive(id);
     return {

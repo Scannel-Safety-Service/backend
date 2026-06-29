@@ -18,5 +18,5 @@ export const TENANT_SCOPED_MODELS = [
   'Reminder',
   'Asset', // Module 3 — Asset Management
   'Project', // Module 4 — Project Management
-  'Folder',  // Module 4 — Project Management
+  'Folder', // Module 4 — Project Management
 ];

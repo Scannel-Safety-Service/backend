@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { CreateIndividualDto } from './dto/create-individual.dto';
@@ -49,7 +65,10 @@ export class IndividualsController {
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Update an individual' })
-  async update(@Param('id') id: string, @Body() updateDto: UpdateIndividualDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateIndividualDto,
+  ) {
     const individual = await this.individualsService.update(id, updateDto);
     return {
       message: 'Individual updated successfully',
@@ -82,7 +101,9 @@ export class IndividualsController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Permanently delete an individual (must be archived first)' })
+  @ApiOperation({
+    summary: 'Permanently delete an individual (must be archived first)',
+  })
   @ApiResponse({ status: 204, description: 'Individual permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.individualsService.permanentDelete(id);

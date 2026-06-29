@@ -17,10 +17,7 @@ export class ProjectsRepository {
   async findMany(where: Prisma.ProjectWhereInput): Promise<Project[]> {
     return this.client.project.findMany({
       where,
-      orderBy: [
-        { year: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ year: 'desc' }, { name: 'asc' }],
     });
   }
 
@@ -30,7 +27,11 @@ export class ProjectsRepository {
     });
   }
 
-  async findByIdWithFolders(id: string): Promise<(Project & { folders: (Folder & { documents: any[] })[] }) | null> {
+  async findByIdWithFolders(
+    id: string,
+  ): Promise<
+    (Project & { folders: (Folder & { documents: any[] })[] }) | null
+  > {
     return this.client.project.findUnique({
       where: { id },
       include: {
@@ -54,7 +55,7 @@ export class ProjectsRepository {
           },
         },
       },
-    }) as any;
+    });
   }
 
   async update(id: string, data: Prisma.ProjectUpdateInput): Promise<Project> {

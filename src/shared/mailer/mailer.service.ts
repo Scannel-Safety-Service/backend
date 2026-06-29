@@ -102,7 +102,10 @@ ${html.substring(0, 300)}... (truncated)
     });
   }
 
-  async sendWelcomeInvitationEmail(email: string, token: string): Promise<void> {
+  async sendWelcomeInvitationEmail(
+    email: string,
+    token: string,
+  ): Promise<void> {
     const inviteUrl = `http://localhost:3000/api/v1/auth/accept-invitation?token=${token}`;
     const text = `An account has been created for you. Click the link below to set your password and access your account.\n\nURL: ${inviteUrl}\nToken: ${token}`;
     const html = `

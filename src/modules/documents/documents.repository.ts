@@ -43,7 +43,10 @@ export class DocumentsRepository {
     });
   }
 
-  async update(id: string, data: Prisma.DocumentUpdateInput): Promise<Document> {
+  async update(
+    id: string,
+    data: Prisma.DocumentUpdateInput,
+  ): Promise<Document> {
     return this.client.document.update({
       where: { id },
       data,

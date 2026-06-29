@@ -6,13 +6,19 @@ export class CreateProjectDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'The calendar year of the project (e.g. 2026, 2056)', minimum: 2000, maximum: 2100 })
+  @ApiProperty({
+    description: 'The calendar year of the project (e.g. 2026, 2056)',
+    minimum: 2000,
+    maximum: 2100,
+  })
   @IsInt()
   @Min(2000)
   @Max(2100)
   year: number;
 
-  @ApiPropertyOptional({ description: 'Optional company ID (required for Super Admin)' })
+  @ApiPropertyOptional({
+    description: 'Optional company ID (required for Super Admin)',
+  })
   @IsUUID()
   @IsOptional()
   companyId?: string;

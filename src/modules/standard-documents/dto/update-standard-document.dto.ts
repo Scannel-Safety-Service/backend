@@ -8,7 +8,10 @@ export class UpdateStandardDocumentDto {
   @IsOptional()
   title?: string;
 
-  @ApiPropertyOptional({ enum: DocumentSection, description: 'The document section this template belongs to' })
+  @ApiPropertyOptional({
+    enum: DocumentSection,
+    description: 'The document section this template belongs to',
+  })
   @IsEnum(DocumentSection)
   @IsOptional()
   section?: DocumentSection;
@@ -18,7 +21,11 @@ export class UpdateStandardDocumentDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Optional new template file to replace the existing one' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Optional new template file to replace the existing one',
+  })
   @IsOptional()
   file?: any;
 }

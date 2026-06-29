@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -13,16 +29,22 @@ import { CategoriesService } from './categories.service';
 @ApiBearerAuth()
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) { }
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Create a new category (auto-scoped to caller company except Super Admin)' })
+  @ApiOperation({
+    summary:
+      'Create a new category (auto-scoped to caller company except Super Admin)',
+  })
   async create(
     @Body() createCategoryDto: CreateCategoryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const category = await this.categoriesService.create(createCategoryDto, user);
+    const category = await this.categoriesService.create(
+      createCategoryDto,
+      user,
+    );
     return {
       message: 'Category created successfully',
       data: category,
@@ -37,7 +59,7 @@ export class CategoriesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const result = await this.categoriesService.findAll(queryDto, user);
-    console.log(result)
+    console.log(result);
     return {
       message: 'Categories retrieved successfully',
       data: result,
@@ -63,7 +85,11 @@ export class CategoriesController {
     @Body() updateCategoryDto: UpdateCategoryDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const category = await this.categoriesService.update(id, updateCategoryDto, user);
+    const category = await this.categoriesService.update(
+      id,
+      updateCategoryDto,
+      user,
+    );
     return {
       message: 'Category updated successfully',
       data: category,
@@ -101,7 +127,9 @@ export class CategoriesController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Irreversibly delete a category (must be archived first)' })
+  @ApiOperation({
+    summary: 'Irreversibly delete a category (must be archived first)',
+  })
   @ApiResponse({ status: 204, description: 'Category permanently deleted' })
   async permanentDelete(
     @Param('id') id: string,

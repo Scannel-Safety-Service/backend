@@ -8,7 +8,10 @@ export class CreateStandardDocumentDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ enum: DocumentSection, description: 'The document section this template belongs to' })
+  @ApiProperty({
+    enum: DocumentSection,
+    description: 'The document section this template belongs to',
+  })
   @IsEnum(DocumentSection)
   section: DocumentSection;
 
@@ -17,7 +20,11 @@ export class CreateStandardDocumentDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'The template file to upload' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'The template file to upload',
+  })
   @IsOptional()
   file?: any;
 }

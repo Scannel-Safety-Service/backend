@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Document } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
@@ -20,7 +24,11 @@ export class DocumentsService {
     private readonly prismaService: TenantPrismaService,
   ) {}
 
-  async create(dto: CreateDocumentDto, file: Express.Multer.File, caller: AuthenticatedUser): Promise<Document> {
+  async create(
+    dto: CreateDocumentDto,
+    file: Express.Multer.File,
+    caller: AuthenticatedUser,
+  ): Promise<Document> {
     if (!file) {
       throw new BadRequestException('File upload is required');
     }
@@ -41,7 +49,9 @@ export class DocumentsService {
       }
     } else {
       if (!caller.companyId) {
-        throw new BadRequestException('Caller must belong to a company to upload documents');
+        throw new BadRequestException(
+          'Caller must belong to a company to upload documents',
+        );
       }
       companyId = caller.companyId;
     }
@@ -59,7 +69,8 @@ export class DocumentsService {
       }
     }
 
-    const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+    const { fileUrl, originalFileName } =
+      await this.storageService.saveFile(file);
 
     const title = dto.title || file.originalname;
 
@@ -99,7 +110,10 @@ export class DocumentsService {
     }
 
     // Apply security check for non-admin callers (COMPANY_USER, APP_USER)
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       where.OR = [
         { userId: caller.userId },
         {
@@ -134,7 +148,11 @@ export class DocumentsService {
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
-    const [items, total] = await this.documentsRepository.findAndCount(where, page, limit);
+    const [items, total] = await this.documentsRepository.findAndCount(
+      where,
+      page,
+      limit,
+    );
 
     return {
       items,
@@ -154,14 +172,21 @@ export class DocumentsService {
     }
 
     // Tenant check
-    if (caller.role !== Role.SUPER_ADMIN && document.companyId !== caller.companyId) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      document.companyId !== caller.companyId
+    ) {
       throw new NotFoundException('Document not found');
     }
 
     // Role-based visibility check for non-admins
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       const isAssignedToUser = document.userId === caller.userId;
-      const isCompanyWide = document.userId === null && document.categoryId === null;
+      const isCompanyWide =
+        document.userId === null && document.categoryId === null;
 
       let isCategoryAssigned = false;
       if (document.categoryId) {
@@ -191,10 +216,18 @@ export class DocumentsService {
     return document;
   }
 
-  async update(id: string, dto: UpdateDocumentDto, caller: AuthenticatedUser, file?: Express.Multer.File): Promise<Document> {
+  async update(
+    id: string,
+    dto: UpdateDocumentDto,
+    caller: AuthenticatedUser,
+    file?: Express.Multer.File,
+  ): Promise<Document> {
     const document = await this.findOne(id, caller);
 
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       throw new NotFoundException('Document not found');
     }
 
@@ -240,7 +273,8 @@ export class DocumentsService {
     }
 
     if (file) {
-      const { fileUrl, originalFileName } = await this.storageService.saveFile(file);
+      const { fileUrl, originalFileName } =
+        await this.storageService.saveFile(file);
       updateData.fileUrl = fileUrl;
       updateData.originalFileName = originalFileName;
 
@@ -252,7 +286,10 @@ export class DocumentsService {
 
   async archive(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.findOne(id, caller);
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       throw new NotFoundException('Document not found');
     }
 
@@ -267,7 +304,10 @@ export class DocumentsService {
 
   async restore(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.findOne(id, caller);
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       throw new NotFoundException('Document not found');
     }
 
@@ -282,12 +322,17 @@ export class DocumentsService {
 
   async permanentDelete(id: string, caller: AuthenticatedUser): Promise<void> {
     const document = await this.findOne(id, caller);
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
       throw new NotFoundException('Document not found');
     }
 
     if (document.archivedAt === null) {
-      throw new BadRequestException('Document must be archived first before permanent deletion');
+      throw new BadRequestException(
+        'Document must be archived first before permanent deletion',
+      );
     }
 
     await this.storageService.deleteFile(document.fileUrl);

@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Company, Prisma, RefreshToken, User, PasswordResetToken, InvitationToken, ImpersonationLog } from '@prisma/client';
+import {
+  Company,
+  Prisma,
+  RefreshToken,
+  User,
+  PasswordResetToken,
+  InvitationToken,
+  ImpersonationLog,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -44,7 +52,7 @@ export class AuthRepository {
         data: {
           ...userData,
           company: { connect: { id: company.id } },
-        } as Prisma.UserCreateInput,
+        },
       });
     });
   }
@@ -63,20 +71,27 @@ export class AuthRepository {
     });
   }
 
-  async findRefreshTokenByHash(tokenHash: string): Promise<RefreshToken | null> {
+  async findRefreshTokenByHash(
+    tokenHash: string,
+  ): Promise<RefreshToken | null> {
     return this.prisma.refreshToken.findUnique({
       where: { tokenHash },
     });
   }
 
-  async revokeRefreshToken(tokenHash: string, revokedAt: Date = new Date()): Promise<RefreshToken> {
+  async revokeRefreshToken(
+    tokenHash: string,
+    revokedAt: Date = new Date(),
+  ): Promise<RefreshToken> {
     return this.prisma.refreshToken.update({
       where: { tokenHash },
       data: { revokedAt },
     });
   }
 
-  async revokeAllRefreshTokensForUser(userId: string): Promise<Prisma.BatchPayload> {
+  async revokeAllRefreshTokensForUser(
+    userId: string,
+  ): Promise<Prisma.BatchPayload> {
     return this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -97,7 +112,9 @@ export class AuthRepository {
     });
   }
 
-  async findPasswordResetTokenByHash(tokenHash: string): Promise<PasswordResetToken | null> {
+  async findPasswordResetTokenByHash(
+    tokenHash: string,
+  ): Promise<PasswordResetToken | null> {
     return this.prisma.passwordResetToken.findUnique({
       where: { tokenHash },
     });
@@ -113,14 +130,20 @@ export class AuthRepository {
     });
   }
 
-  async updateUserPassword(userId: string, passwordHash: string): Promise<User> {
+  async updateUserPassword(
+    userId: string,
+    passwordHash: string,
+  ): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
     });
   }
 
-  async updateUser(userId: string, data: Prisma.UserUpdateInput): Promise<User> {
+  async updateUser(
+    userId: string,
+    data: Prisma.UserUpdateInput,
+  ): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
       data,
@@ -141,7 +164,9 @@ export class AuthRepository {
     });
   }
 
-  async findInvitationTokenByHash(tokenHash: string): Promise<InvitationToken | null> {
+  async findInvitationTokenByHash(
+    tokenHash: string,
+  ): Promise<InvitationToken | null> {
     return this.prisma.invitationToken.findUnique({
       where: { tokenHash },
     });

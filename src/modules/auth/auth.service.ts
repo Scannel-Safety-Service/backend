@@ -1,4 +1,11 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
@@ -36,18 +43,24 @@ export class AuthService {
 
     if (creator.role === Role.SUPER_ADMIN) {
       if (dto.companyName) {
-        const company = await this.authRepository.createCompany({ name: dto.companyName });
+        const company = await this.authRepository.createCompany({
+          name: dto.companyName,
+        });
         companyId = company.id;
       } else if (dto.companyId) {
         companyId = dto.companyId;
       }
     } else if (creator.role === Role.COMPANY_ADMIN) {
       if (dto.role === Role.SUPER_ADMIN) {
-        throw new ForbiddenException('Company Admin cannot create a Super Admin');
+        throw new ForbiddenException(
+          'Company Admin cannot create a Super Admin',
+        );
       }
       companyId = creator.companyId;
       if (!companyId) {
-        throw new ForbiddenException('Creator must belong to a company to register users');
+        throw new ForbiddenException(
+          'Creator must belong to a company to register users',
+        );
       }
     } else {
       throw new ForbiddenException('Only admins can register users');
@@ -85,13 +98,17 @@ export class AuthService {
     } catch (error: any) {
       // Handle Prisma unique constraint error for companyId + userCode
       if (error.code === 'P2002') {
-        throw new ConflictException('User code already exists within this company');
+        throw new ConflictException(
+          'User code already exists within this company',
+        );
       }
       throw error;
     }
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+  async login(
+    dto: LoginDto,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.authRepository.findUserByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -101,15 +118,22 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.issueTokenPair(user.id, user.companyId, user.role);
+    const tokens = await this.issueTokenPair(
+      user.id,
+      user.companyId,
+      user.role,
+    );
 
     const hashed = hashToken(tokens.refreshToken);
-    const decoded = this.jwtService.decode(tokens.refreshToken) as { exp: number };
+    const decoded = this.jwtService.decode(tokens.refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.authRepository.createRefreshToken(user.id, hashed, expiresAt);
@@ -124,9 +148,14 @@ export class AuthService {
     rawRefreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const hashed = hashToken(rawRefreshToken);
-    const tokenRecord = await this.authRepository.findRefreshTokenByHash(hashed);
+    const tokenRecord =
+      await this.authRepository.findRefreshTokenByHash(hashed);
 
-    if (!tokenRecord || tokenRecord.revokedAt !== null || tokenRecord.expiresAt < new Date()) {
+    if (
+      !tokenRecord ||
+      tokenRecord.revokedAt !== null ||
+      tokenRecord.expiresAt < new Date()
+    ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
@@ -135,7 +164,7 @@ export class AuthService {
     const tokens = await this.issueTokenPair(userId, companyId, role);
 
     const newHashed = hashToken(tokens.refreshToken);
-    const decoded = this.jwtService.decode(tokens.refreshToken) as { exp: number };
+    const decoded = this.jwtService.decode(tokens.refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.authRepository.createRefreshToken(userId, newHashed, expiresAt);
@@ -161,21 +190,35 @@ export class AuthService {
     const tokenHash = hashToken(token);
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
-    await this.authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
+    await this.authRepository.createPasswordResetToken(
+      user.id,
+      tokenHash,
+      expiresAt,
+    );
     await this.mailerService.sendPasswordResetEmail(user.email, token);
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
     const tokenHash = hashToken(dto.token);
-    const resetToken = await this.authRepository.findPasswordResetTokenByHash(tokenHash);
+    const resetToken =
+      await this.authRepository.findPasswordResetTokenByHash(tokenHash);
 
-    if (!resetToken || resetToken.usedAt !== null || resetToken.expiresAt < new Date()) {
+    if (
+      !resetToken ||
+      resetToken.usedAt !== null ||
+      resetToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired password reset token');
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
-    await this.authRepository.updateUserPassword(resetToken.userId, passwordHash);
-    await this.authRepository.updatePasswordResetToken(resetToken.id, { usedAt: new Date() });
+    await this.authRepository.updateUserPassword(
+      resetToken.userId,
+      passwordHash,
+    );
+    await this.authRepository.updatePasswordResetToken(resetToken.id, {
+      usedAt: new Date(),
+    });
     await this.authRepository.revokeAllRefreshTokensForUser(resetToken.userId);
   }
 
@@ -184,15 +227,24 @@ export class AuthService {
     const tokenHash = hashToken(token);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    await this.authRepository.createInvitationToken(userId, tokenHash, expiresAt);
+    await this.authRepository.createInvitationToken(
+      userId,
+      tokenHash,
+      expiresAt,
+    );
     return token;
   }
 
   async acceptInvitation(dto: AcceptInvitationDto): Promise<void> {
     const tokenHash = hashToken(dto.token);
-    const inviteToken = await this.authRepository.findInvitationTokenByHash(tokenHash);
+    const inviteToken =
+      await this.authRepository.findInvitationTokenByHash(tokenHash);
 
-    if (!inviteToken || inviteToken.usedAt !== null || inviteToken.expiresAt < new Date()) {
+    if (
+      !inviteToken ||
+      inviteToken.usedAt !== null ||
+      inviteToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired invitation token');
     }
 
@@ -203,7 +255,9 @@ export class AuthService {
         passwordHash,
         isActive: true,
       }),
-      this.authRepository.updateInvitationToken(inviteToken.id, { usedAt: new Date() }),
+      this.authRepository.updateInvitationToken(inviteToken.id, {
+        usedAt: new Date(),
+      }),
       this.authRepository.revokeAllRefreshTokensForUser(inviteToken.userId),
     ]);
   }
@@ -219,7 +273,9 @@ export class AuthService {
     }
 
     if (!targetUser.isActive || targetUser.archivedAt !== null) {
-      throw new BadRequestException('Cannot impersonate inactive or archived user');
+      throw new BadRequestException(
+        'Cannot impersonate inactive or archived user',
+      );
     }
 
     const admin = await this.authRepository.findUserById(adminId);
@@ -240,18 +296,30 @@ export class AuthService {
       expiresIn: '20m', // 20 minutes impersonation token
     });
 
-    await this.authRepository.createImpersonationLog(admin.id, targetUser.id, ipAddress);
+    await this.authRepository.createImpersonationLog(
+      admin.id,
+      targetUser.id,
+      ipAddress,
+    );
 
     return { accessToken };
   }
 
-  async stopImpersonation(adminId: string, targetUserId: string): Promise<void> {
-    const log = await this.authRepository.findActiveImpersonationLog(adminId, targetUserId);
+  async stopImpersonation(
+    adminId: string,
+    targetUserId: string,
+  ): Promise<void> {
+    const log = await this.authRepository.findActiveImpersonationLog(
+      adminId,
+      targetUserId,
+    );
     if (!log) {
       throw new BadRequestException('No active impersonation session found');
     }
 
-    await this.authRepository.updateImpersonationLog(log.id, { endedAt: new Date() });
+    await this.authRepository.updateImpersonationLog(log.id, {
+      endedAt: new Date(),
+    });
   }
 
   private async issueTokenPair(
