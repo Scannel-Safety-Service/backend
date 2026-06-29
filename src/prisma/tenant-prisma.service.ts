@@ -29,7 +29,9 @@ export class TenantPrismaService {
 
             const { companyId, role } = user;
             const resolvedCompanyId =
-              companyId || req?.body?.companyId || req?.query?.companyId;
+              role === Role.SUPER_ADMIN
+                ? (companyId || req?.query?.companyId)
+                : companyId;
 
             const isScoped = TENANT_SCOPED_MODELS.includes(model);
 

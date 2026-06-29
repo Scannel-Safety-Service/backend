@@ -9,9 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import * as express from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
@@ -97,6 +99,18 @@ export class DocumentsController {
       message: 'Document retrieved successfully',
       data: document,
     };
+  }
+
+  @Get('file/:filename')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @ApiOperation({ summary: 'Stream the uploaded file contents securely (scoping applied)' })
+  async getFile(
+    @Param('filename') filename: string,
+    @CurrentUser() caller: AuthenticatedUser,
+    @Res() res: express.Response,
+  ) {
+    const filePath = await this.documentsService.getSecureFilePath(filename, caller);
+    res.sendFile(filePath);
   }
 
   @Patch(':id')
