@@ -37,6 +37,12 @@ export class UsersService {
       where.userCode = { contains: queryDto.userCode, mode: 'insensitive' };
     }
 
+    if (queryDto.archived === 'true') {
+      where.archivedAt = { not: null };
+    } else if (queryDto.archived === 'false' || !queryDto.archived) {
+      where.archivedAt = null;
+    }
+
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 

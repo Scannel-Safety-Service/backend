@@ -39,4 +39,11 @@ export class UserQueryDto {
   @Min(1)
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Filter users by archive status ("true" or "false")',
+  })
+  @IsString()
+  @IsOptional()
+  archived?: string;
 }
