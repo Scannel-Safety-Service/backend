@@ -73,7 +73,21 @@ export class TenantPrismaService {
                           {
                             OR: [
                               { companyId: resolvedCompanyId },
-                              { companyId: null },
+                              {
+                                companyId: null,
+                                OR: [
+                                  { assignToAll: true },
+                                  {
+                                    assignments: {
+                                      some: {
+                                        user: {
+                                          companyId: resolvedCompanyId,
+                                        },
+                                      },
+                                    },
+                                  },
+                                ],
+                              },
                             ],
                           },
                         ],

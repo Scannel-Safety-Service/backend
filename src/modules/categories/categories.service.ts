@@ -17,7 +17,7 @@ export class CategoriesService {
   constructor(
     private readonly categoriesRepository: CategoriesRepository,
     private readonly prismaService: TenantPrismaService,
-  ) {}
+  ) { }
 
   async create(
     dto: CreateCategoryDto,
@@ -118,10 +118,6 @@ export class CategoriesService {
           },
         },
       ];
-    }
-
-    if (caller.role !== Role.SUPER_ADMIN && !targetUserId) {
-      where.companyId = caller.companyId;
     }
 
     if (queryDto.archived === 'true') {
