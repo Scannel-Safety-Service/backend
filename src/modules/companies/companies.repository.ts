@@ -10,8 +10,19 @@ export class CompaniesRepository {
     return this.prisma.company.create({ data });
   }
 
-  async findAll(): Promise<Company[]> {
-    return this.prisma.company.findMany();
+  async findAll(): Promise<any[]> {
+    return this.prisma.company.findMany({
+      include: {
+        users: {
+          select: {
+            id: true,
+            role: true,
+            isActive: true,
+            archivedAt: true,
+          },
+        },
+      },
+    });
   }
 
   async findById(id: string): Promise<Company | null> {
