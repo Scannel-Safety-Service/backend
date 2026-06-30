@@ -31,7 +31,7 @@ export class AssetsService {
     private readonly repository: AssetsRepository,
     private readonly prismaService: TenantPrismaService,
     private readonly storageService: StorageService,
-  ) {}
+  ) { }
 
   // ---------------------------------------------------------------------------
   // CRUD
@@ -214,6 +214,27 @@ export class AssetsService {
   ): Promise<any> {
     if (!file) {
       throw new BadRequestException('An image or document file is required');
+    }
+
+    // Validate MIME type
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Unsupported file type. Allowed types: PDF, JPEG, PNG, DOCX',
+      );
+    }
+
+    // Validate file size (max 10 MB)
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      throw new BadRequestException(
+        'File exceeds the maximum allowed size of 10 MB',
+      );
     }
 
     // Verify asset belongs to the tenant (scoped findUnique will 404 if not)

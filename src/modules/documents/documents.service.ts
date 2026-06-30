@@ -3,6 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as path from 'path';
+import * as fs from 'fs';
 import { Prisma, Document } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
@@ -145,6 +147,49 @@ export class DocumentsService {
       where.archivedAt = null;
     }
 
+    // ── Interrogation/Search filters ────────────────────────────────────────────
+
+    // Date range filter (createdAt)
+    if (queryDto.dateFrom || queryDto.dateTo) {
+      where.createdAt = {};
+      if (queryDto.dateFrom)
+        (where.createdAt as any).gte = new Date(queryDto.dateFrom);
+      if (queryDto.dateTo)
+        (where.createdAt as any).lte = new Date(queryDto.dateTo);
+    }
+
+    // Signatory filter — targets the user who uploaded the document
+    if (queryDto.signatoryId) {
+      where.userId = queryDto.signatoryId;
+    }
+
+    // Document type filter
+    if (queryDto.documentType) {
+      (where as any).documentType = queryDto.documentType;
+    }
+
+    // Inspection type filter
+    if (queryDto.inspectionType) {
+      (where as any).inspectionType = queryDto.inspectionType;
+    }
+
+    // Keyword full-text filter across title and originalFileName
+    if (queryDto.keyword) {
+      const keywordConditions = [
+        { title: { contains: queryDto.keyword, mode: 'insensitive' as const } },
+        {
+          originalFileName: {
+            contains: queryDto.keyword,
+            mode: 'insensitive' as const,
+          },
+        },
+      ];
+      // Merge with any existing OR conditions (e.g. role-based visibility)
+      where.OR = where.OR
+        ? [{ OR: where.OR as any[] }, { OR: keywordConditions }]
+        : keywordConditions;
+    }
+
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
@@ -164,6 +209,7 @@ export class DocumentsService {
       },
     };
   }
+
 
   async findOne(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.documentsRepository.findById(id);
@@ -397,5 +443,81 @@ export class DocumentsService {
     };
 
     return this.documentsRepository.create(data);
+  }
+
+  async getSecureFilePath(
+    filename: string,
+    caller: AuthenticatedUser,
+  ): Promise<string> {
+    // 1. Check if the file is a global template (StandardDocument)
+    const stdDoc = await this.prismaService.client.standardDocument.findFirst({
+      where: { fileUrl: `/uploads/${filename}` },
+    });
+
+    if (stdDoc) {
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      if (!fs.existsSync(filePath)) {
+        throw new NotFoundException('Physical file not found');
+      }
+      return filePath;
+    }
+
+    // 2. Check if the file is a tenant-scoped document (Document)
+    const document = await this.prismaService.client.document.findFirst({
+      where: { fileUrl: `/uploads/${filename}` },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document record not found');
+    }
+
+    // 3. Tenant scoping check
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      document.companyId !== caller.companyId
+    ) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // 4. Role-based visibility check for non-admins
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
+      const isAssignedToUser = document.userId === caller.userId;
+      const isCompanyWide =
+        document.userId === null && document.categoryId === null;
+
+      let isCategoryAssigned = false;
+      if (document.categoryId) {
+        const count = await this.prismaService.client.category.count({
+          where: {
+            id: document.categoryId,
+            OR: [
+              { assignToAll: true },
+              {
+                assignments: {
+                  some: {
+                    userId: caller.userId,
+                  },
+                },
+              },
+            ],
+          },
+        });
+        isCategoryAssigned = count > 0;
+      }
+
+      if (!isAssignedToUser && !isCompanyWide && !isCategoryAssigned) {
+        throw new NotFoundException('Document not found');
+      }
+    }
+
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Physical file not found');
+    }
+
+    return filePath;
   }
 }

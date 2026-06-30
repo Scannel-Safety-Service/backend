@@ -15,8 +15,27 @@ export class CompaniesService {
     });
   }
 
-  async findAll(): Promise<Company[]> {
-    return this.companiesRepository.findAll();
+  async findAll(): Promise<any[]> {
+    const companies = await this.companiesRepository.findAll();
+    return companies.map((company) => {
+      // Find an active COMPANY_ADMIN user
+      let targetUser = company.users.find(
+        (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
+      );
+      // Fallback to any active user
+      if (!targetUser) {
+        targetUser = company.users.find(
+          (u: any) => u.isActive && u.archivedAt === null,
+        );
+      }
+      return {
+        id: company.id,
+        name: company.name,
+        isActive: company.isActive,
+        createdAt: company.createdAt,
+        adminUserId: targetUser ? targetUser.id : null,
+      };
+    });
   }
 
   async findOne(id: string): Promise<Company> {

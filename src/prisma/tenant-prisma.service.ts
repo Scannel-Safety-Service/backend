@@ -27,9 +27,12 @@ export class TenantPrismaService {
               return query(args);
             }
 
-            const { companyId, role } = user;
+            const { companyId, role, impersonatedBy } = user;
+            const isImpersonating = !!impersonatedBy;
             const resolvedCompanyId =
-              companyId || req?.body?.companyId || req?.query?.companyId;
+              (role === Role.SUPER_ADMIN && !isImpersonating)
+                ? (companyId || req?.query?.companyId)
+                : companyId;
 
             const isScoped = TENANT_SCOPED_MODELS.includes(model);
 
@@ -53,7 +56,7 @@ export class TenantPrismaService {
                   'upsert',
                 ].includes(operation)
               ) {
-                if (role !== Role.SUPER_ADMIN && resolvedCompanyId) {
+                if ((role !== Role.SUPER_ADMIN || isImpersonating) && resolvedCompanyId) {
                   if (model === 'Category') {
                     if (
                       [

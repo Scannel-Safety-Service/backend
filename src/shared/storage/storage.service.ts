@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -17,6 +17,26 @@ export class StorageService {
   async saveFile(
     file: Express.Multer.File,
   ): Promise<{ fileUrl: string; originalFileName: string }> {
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `Unsupported file type: ${file.mimetype}. Allowed types: PDF, JPEG, PNG, DOCX`,
+      );
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      throw new BadRequestException(
+        `File size exceeds the 10 MB limit (current: ${(file.size / (1024 * 1024)).toFixed(2)} MB)`,
+      );
+    }
+
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const filename = `${uniqueSuffix}${ext}`;
@@ -30,6 +50,7 @@ export class StorageService {
       originalFileName: file.originalname,
     };
   }
+
 
   async deleteFile(fileUrl: string): Promise<void> {
     try {
