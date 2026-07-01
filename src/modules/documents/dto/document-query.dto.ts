@@ -46,6 +46,22 @@ export class DocumentQueryDto {
   @IsString()
   archived?: 'true' | 'false' | 'all';
 
+  @ApiPropertyOptional({
+    description:
+      'Scope results to documents belonging to a specific project (by project ID)',
+  })
+  @IsUUID()
+  @IsOptional()
+  projectId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Scope results to documents within a specific compliance folder (by folder ID)',
+  })
+  @IsUUID()
+  @IsOptional()
+  folderId?: string;
+
   // ── Interrogation/Search filters ──────────────────────────────────────────────
 
   @ApiPropertyOptional({
