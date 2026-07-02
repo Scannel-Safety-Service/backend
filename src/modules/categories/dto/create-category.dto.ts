@@ -28,12 +28,10 @@ export class CreateCategoryDto {
   assignToAll: boolean;
 
   @ApiPropertyOptional({
-    type: [String],
     description:
-      'Optional array of specific user IDs assigned to this category',
+      'Optional specific user ID assigned to this category',
   })
-  @IsArray()
-  @IsUUID(undefined, { each: true })
+  @IsUUID()
   @IsOptional()
-  userIds?: string[];
+  userId?: string;
 }

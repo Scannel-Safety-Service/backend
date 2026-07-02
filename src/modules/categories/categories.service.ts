@@ -35,17 +35,17 @@ export class CategoriesService {
 
     // If Company Admin, they can only assign categories to users in their own company.
     // If Super Admin, they can assign to any user.
-    if (dto.userIds && dto.userIds.length > 0) {
-      const allowedUsersCount = await this.prismaService.client.user.count({
+    if (!dto.assignToAll && dto.userId) {
+      const allowedUserCount = await this.prismaService.client.user.count({
         where: {
-          id: { in: dto.userIds },
+          id: dto.userId,
           companyId: creator.companyId ? creator.companyId : undefined,
         },
       });
 
-      if (allowedUsersCount !== dto.userIds.length) {
+      if (allowedUserCount !== 1) {
         throw new BadRequestException(
-          'Some assigned users do not exist or do not belong to your company',
+          'Assigned user does not exist or does not belong to your company',
         );
       }
     }
@@ -63,14 +63,13 @@ export class CategoriesService {
 
     const category = await this.categoriesRepository.create(data);
 
-    // Create user assignments if not assignToAll and userIds are provided
-    if (!dto.assignToAll && dto.userIds && dto.userIds.length > 0) {
-      const assignmentData = dto.userIds.map((userId) => ({
-        categoryId: category.id,
-        userId,
-      }));
-      await this.prismaService.client.categoryUser.createMany({
-        data: assignmentData,
+    // Create user assignment if not assignToAll and userId is provided
+    if (!dto.assignToAll && dto.userId) {
+      await this.prismaService.client.categoryUser.create({
+        data: {
+          categoryId: category.id,
+          userId: dto.userId,
+        },
       });
     }
 
@@ -179,18 +178,18 @@ export class CategoriesService {
       );
     }
 
-    // Verify user ids are valid and belong to the company
-    if (dto.userIds && dto.userIds.length > 0) {
-      const allowedUsersCount = await this.prismaService.client.user.count({
+    // Verify user id is valid and belongs to the company
+    if (dto.assignToAll === false && dto.userId) {
+      const allowedUserCount = await this.prismaService.client.user.count({
         where: {
-          id: { in: dto.userIds },
+          id: dto.userId,
           companyId: updater.companyId ? updater.companyId : undefined,
         },
       });
 
-      if (allowedUsersCount !== dto.userIds.length) {
+      if (allowedUserCount !== 1) {
         throw new BadRequestException(
-          'Some assigned users do not exist or do not belong to your company',
+          'Assigned user does not exist or does not belong to your company',
         );
       }
     }
@@ -211,37 +210,17 @@ export class CategoriesService {
       await this.prismaService.client.categoryUser.deleteMany({
         where: { categoryId: id },
       });
-    } else if (dto.userIds !== undefined) {
-      // Synchronize the CategoryUser junction table records
-      const existingAssignments =
-        await this.prismaService.client.categoryUser.findMany({
-          where: { categoryId: id },
-          select: { userId: true },
-        });
-      const existingUserIds = existingAssignments.map((a) => a.userId);
-
-      const toAdd = dto.userIds.filter(
-        (userId) => !existingUserIds.includes(userId),
-      );
-      const toRemove = existingUserIds.filter(
-        (userId) => !dto.userIds!.includes(userId),
-      );
-
-      if (toRemove.length > 0) {
-        await this.prismaService.client.categoryUser.deleteMany({
-          where: {
+    } else if (dto.userId !== undefined) {
+      // Delete existing assignments and create new one
+      await this.prismaService.client.categoryUser.deleteMany({
+        where: { categoryId: id },
+      });
+      if (dto.userId) {
+        await this.prismaService.client.categoryUser.create({
+          data: {
             categoryId: id,
-            userId: { in: toRemove },
+            userId: dto.userId,
           },
-        });
-      }
-
-      if (toAdd.length > 0) {
-        await this.prismaService.client.categoryUser.createMany({
-          data: toAdd.map((userId) => ({
-            categoryId: id,
-            userId,
-          })),
         });
       }
     }

@@ -46,4 +46,14 @@ export class UserQueryDto {
   @IsString()
   @IsOptional()
   archived?: string;
+
+  @ApiPropertyOptional({ description: 'Filter users by role' })
+  @IsString()
+  @IsOptional()
+  role?: string;
+
+  @ApiPropertyOptional({ description: 'Filter users by active status ("true" or "false")' })
+  @IsString()
+  @IsOptional()
+  isActive?: string;
 }

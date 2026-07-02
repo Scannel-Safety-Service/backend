@@ -30,6 +30,12 @@ export class UsersRepository {
       companyId: true,
       createdAt: true,
       updatedAt: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     };
 
     const [items, total] = await (this.client.$transaction([

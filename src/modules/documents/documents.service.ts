@@ -314,6 +314,7 @@ export class DocumentsService {
     const updateData: Prisma.DocumentUpdateInput = {};
 
     if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.section !== undefined) updateData.section = dto.section;
     if (dto.description !== undefined) updateData.description = dto.description;
 
     if (dto.isReviewed !== undefined) {

@@ -8,6 +8,7 @@ export type EnrichedDocument = Document & {
   project: { id: string; name: string; year: number } | null;
   folder: { id: string; name: string } | null;
   user: { id: string; firstName: string; lastName: string } | null;
+  category: { id: string; name: string } | null;
 };
 
 // Prisma include shape reused for all enriched queries
@@ -20,6 +21,9 @@ const DOCUMENT_INCLUDE = {
   },
   user: {
     select: { id: true, firstName: true, lastName: true },
+  },
+  category: {
+    select: { id: true, name: true },
   },
 } satisfies Prisma.DocumentInclude;
 
