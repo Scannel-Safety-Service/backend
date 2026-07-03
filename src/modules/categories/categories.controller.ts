@@ -29,7 +29,7 @@ import { CategoriesService } from './categories.service';
 @ApiBearerAuth()
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(private readonly categoriesService: CategoriesService) { }
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
@@ -59,7 +59,7 @@ export class CategoriesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const result = await this.categoriesService.findAll(queryDto, user);
-    console.log(result);
+
     return {
       message: 'Categories retrieved successfully',
       data: result,

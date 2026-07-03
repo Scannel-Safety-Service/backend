@@ -99,6 +99,7 @@ export class DocumentsService {
   async findAll(queryDto: DocumentQueryDto, caller: AuthenticatedUser) {
     const where: Prisma.DocumentWhereInput = {};
 
+    // ── Section filter ────────────────────────────────────────────────────────
     if (queryDto.section) {
       where.section = queryDto.section;
     }
@@ -111,83 +112,101 @@ export class DocumentsService {
       where.userId = queryDto.userId;
     }
 
-    // Apply security check for non-admin callers (COMPANY_USER, APP_USER)
-    if (
-      caller.role !== Role.SUPER_ADMIN &&
-      caller.role !== Role.COMPANY_ADMIN
-    ) {
+    // ── Tenant / Role scoping ─────────────────────────────────────────────────
+    // SUPER_ADMIN: can optionally scope to a specific company; otherwise sees all
+    if (caller.role === Role.SUPER_ADMIN) {
+      if (queryDto.companyId) {
+        where.companyId = queryDto.companyId;
+      }
+    } else if (caller.role === Role.COMPANY_ADMIN) {
+      // COMPANY_ADMIN is always scoped to their own company — no override allowed
+      where.companyId = caller.companyId!;
+    } else {
+      // COMPANY_USER / APP_USER — can only see docs assigned to them or company-wide
+      where.companyId = caller.companyId!;
       where.OR = [
         { userId: caller.userId },
-        {
-          userId: null,
-          categoryId: null,
-        },
+        { userId: null, categoryId: null },
         {
           category: {
             OR: [
               { assignToAll: true },
-              {
-                assignments: {
-                  some: {
-                    userId: caller.userId,
-                  },
-                },
-              },
+              { assignments: { some: { userId: caller.userId } } },
             ],
           },
         },
       ];
-    } else if (caller.role === Role.SUPER_ADMIN && queryDto.companyId) {
-      where.companyId = queryDto.companyId;
     }
 
+    // ── Archive filter ─────────────────────────────────────────────────────────
     if (queryDto.archived === 'true') {
       where.archivedAt = { not: null };
-    } else if (queryDto.archived === 'false' || !queryDto.archived) {
+    } else if (queryDto.archived === 'all') {
+      // no archivedAt constraint — include both active and archived
+    } else {
+      // default: active only
       where.archivedAt = null;
     }
 
-    // ── Interrogation/Search filters ────────────────────────────────────────────
-
-    // Date range filter (createdAt)
-    if (queryDto.dateFrom || queryDto.dateTo) {
-      where.createdAt = {};
-      if (queryDto.dateFrom)
-        (where.createdAt as any).gte = new Date(queryDto.dateFrom);
-      if (queryDto.dateTo)
-        (where.createdAt as any).lte = new Date(queryDto.dateTo);
+    // ── Project / Folder scope ────────────────────────────────────────────────
+    // Allows interrogation search to be narrowed to a specific project or folder
+    if (queryDto.projectId) {
+      where.projectId = queryDto.projectId;
     }
 
-    // Signatory filter — targets the user who uploaded the document
+    if (queryDto.folderId) {
+      where.folderId = queryDto.folderId;
+    }
+
+    // ── Interrogation Search filters ──────────────────────────────────────────
+
+    // Date range filter on upload date (createdAt)
+    // dateTo is treated as end-of-day (23:59:59 UTC) for inclusive single-day ranges
+    if (queryDto.dateFrom || queryDto.dateTo) {
+      const createdAtFilter: Prisma.DateTimeFilter = {};
+      if (queryDto.dateFrom) {
+        createdAtFilter.gte = new Date(queryDto.dateFrom);
+      }
+      if (queryDto.dateTo) {
+        const toDate = new Date(queryDto.dateTo);
+        toDate.setUTCHours(23, 59, 59, 999); // end of day inclusive
+        createdAtFilter.lte = toDate;
+      }
+      where.createdAt = createdAtFilter;
+    }
+
+    // Signatory filter — the user who uploaded the document
+    // Takes precedence over any generic userId filter above
     if (queryDto.signatoryId) {
       where.userId = queryDto.signatoryId;
     }
 
-    // Document type filter
+    // Document classification type (e.g. INSPECTION_REPORT, PERMIT, CERTIFICATE)
     if (queryDto.documentType) {
-      (where as any).documentType = queryDto.documentType;
+      where.documentType = queryDto.documentType;
     }
 
-    // Inspection type filter
+    // Inspection frequency type (e.g. DAILY, WEEKLY, MONTHLY, ANNUAL, ADHOC)
     if (queryDto.inspectionType) {
-      (where as any).inspectionType = queryDto.inspectionType;
+      where.inspectionType = queryDto.inspectionType;
     }
 
-    // Keyword full-text filter across title and originalFileName
+    // Full-text keyword search across title and originalFileName
     if (queryDto.keyword) {
-      const keywordConditions = [
-        { title: { contains: queryDto.keyword, mode: 'insensitive' as const } },
-        {
-          originalFileName: {
-            contains: queryDto.keyword,
-            mode: 'insensitive' as const,
-          },
-        },
+      const keywordConditions: Prisma.DocumentWhereInput[] = [
+        { title: { contains: queryDto.keyword, mode: 'insensitive' } },
+        { originalFileName: { contains: queryDto.keyword, mode: 'insensitive' } },
       ];
-      // Merge with any existing OR conditions (e.g. role-based visibility)
-      where.OR = where.OR
-        ? [{ OR: where.OR as any[] }, { OR: keywordConditions }]
-        : keywordConditions;
+      // Merge with any existing OR clause (e.g. role-based visibility for non-admins)
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR as Prisma.DocumentWhereInput[] },
+          { OR: keywordConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = keywordConditions;
+      }
     }
 
     const page = queryDto.page || 1;
@@ -295,6 +314,7 @@ export class DocumentsService {
     const updateData: Prisma.DocumentUpdateInput = {};
 
     if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.section !== undefined) updateData.section = dto.section;
     if (dto.description !== undefined) updateData.description = dto.description;
 
     if (dto.isReviewed !== undefined) {

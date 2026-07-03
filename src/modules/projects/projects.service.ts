@@ -195,7 +195,7 @@ export class ProjectsService {
       section = 'METHOD_STATEMENTS';
     }
 
-    // Create the Document record
+    // Create the Document record — include classification metadata for interrogation search
     const document = await this.prismaService.client.document.create({
       data: {
         title: dto.title || originalFileName,
@@ -203,6 +203,9 @@ export class ProjectsService {
         section,
         fileUrl,
         originalFileName,
+        // Interrogation Search metadata fields (nullable, set at upload time)
+        documentType: dto.documentType || null,
+        inspectionType: dto.inspectionType || null,
         company: { connect: { id: project.companyId } },
         project: { connect: { id: project.id } },
         folder: { connect: { id: folder.id } },

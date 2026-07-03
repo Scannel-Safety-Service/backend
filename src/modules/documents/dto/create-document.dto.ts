@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DocumentSection } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateDocumentDto {
@@ -20,6 +21,7 @@ export class CreateDocumentDto {
   description?: string;
 
   @ApiPropertyOptional({ description: 'Optional category ID' })
+  @Transform(({ value }) => (value === 'null' || value === 'undefined' || value === '' ? null : value))
   @IsUUID()
   @IsOptional()
   categoryId?: string;

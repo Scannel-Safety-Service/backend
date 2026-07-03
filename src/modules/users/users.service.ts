@@ -43,6 +43,14 @@ export class UsersService {
       where.archivedAt = null;
     }
 
+    if (queryDto.role) {
+      where.role = queryDto.role as any;
+    }
+
+    if (queryDto.isActive !== undefined) {
+      where.isActive = queryDto.isActive === 'true';
+    }
+
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
