@@ -30,7 +30,6 @@ export class StandardDocumentsService {
 
     return this.repository.create({
       title: dto.title,
-      section: dto.section,
       description: dto.description,
       fileUrl,
       originalFileName,
@@ -39,10 +38,6 @@ export class StandardDocumentsService {
 
   async findAll(queryDto: StandardDocumentQueryDto) {
     const where: Prisma.StandardDocumentWhereInput = {};
-
-    if (queryDto.section) {
-      where.section = queryDto.section;
-    }
 
     if (queryDto.archived === 'true') {
       where.archivedAt = { not: null };
@@ -87,7 +82,6 @@ export class StandardDocumentsService {
 
     const updateData: Prisma.StandardDocumentUpdateInput = {};
     if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.section !== undefined) updateData.section = dto.section;
     if (dto.description !== undefined) updateData.description = dto.description;
 
     if (file) {

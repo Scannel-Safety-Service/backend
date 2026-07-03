@@ -33,4 +33,9 @@ export class UpdateReminderDto {
   @IsDateString()
   @IsOptional()
   dueDate?: string;
+
+  @ApiPropertyOptional({ description: 'The reminder date for the alert' })
+  @IsDateString()
+  @IsOptional()
+  reminderDate?: string;
 }

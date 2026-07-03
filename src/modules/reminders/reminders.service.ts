@@ -29,7 +29,8 @@ export class RemindersService {
       title: dto.title,
       description: dto.description,
       dueDate: new Date(dto.dueDate),
-      company: { connect: { id: '' } }, // Injected by TenantPrismaService
+      reminderDate: dto.reminderDate ? new Date(dto.reminderDate) : null,
+      company: { connect: { id: dto.companyId || '' } }, // Injected by TenantPrismaService or explicitly passed
     };
 
     if (dto.userId) {
@@ -107,6 +108,9 @@ export class RemindersService {
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.dueDate !== undefined) updateData.dueDate = new Date(dto.dueDate);
+    if (dto.reminderDate !== undefined) {
+      updateData.reminderDate = dto.reminderDate ? new Date(dto.reminderDate) : null;
+    }
 
     if (dto.userId !== undefined) {
       if (dto.userId === null) {

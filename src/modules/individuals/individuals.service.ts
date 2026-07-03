@@ -21,10 +21,9 @@ export class IndividualsService {
     await this.verifyUserBelongsToTenant(dto.userId);
 
     return this.repository.create({
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      name: dto.name,
       user: { connect: { id: dto.userId } },
-      company: { connect: { id: '' } }, // Injected by TenantPrismaService
+      company: { connect: { id: dto.companyId || '' } },
     });
   }
 
@@ -73,8 +72,7 @@ export class IndividualsService {
     await this.findOne(id);
 
     const updateData: Prisma.IndividualUpdateInput = {};
-    if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
-    if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.name !== undefined) updateData.name = dto.name;
 
     return this.repository.update(id, updateData);
   }
