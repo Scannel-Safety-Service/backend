@@ -16,6 +16,13 @@ export class CreateReminderDto {
   userId?: string;
 
   @ApiPropertyOptional({
+    description: 'Optional company ID if reminder belongs to a company/tenant',
+  })
+  @IsUUID()
+  @IsOptional()
+  companyId?: string;
+
+  @ApiPropertyOptional({
     description:
       'Optional individual ID if reminder belongs to a dependent/sub-record',
   })
@@ -38,4 +45,9 @@ export class CreateReminderDto {
   @ApiProperty({ description: 'The due date for the reminder alert' })
   @IsDateString()
   dueDate: string;
+
+  @ApiPropertyOptional({ description: 'The reminder date for the alert' })
+  @IsDateString()
+  @IsOptional()
+  reminderDate?: string;
 }

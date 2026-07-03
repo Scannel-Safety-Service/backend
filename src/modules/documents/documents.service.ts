@@ -432,14 +432,23 @@ export class DocumentsService {
       }
     }
 
+    // Validate category exists in the company/section if categoryId provided
+    if (dto.categoryId) {
+      const category = await this.prismaService.client.category.findUnique({ where: { id: dto.categoryId } });
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+    }
+
     const data: Prisma.DocumentCreateInput = {
       title: dto.title || rawStdDoc.title,
-      section: dto.section || rawStdDoc.section,
+      section: dto.section || 'SAFETY_STATEMENT',
       fileUrl: rawStdDoc.fileUrl,
       originalFileName: rawStdDoc.originalFileName || rawStdDoc.title,
       description: `Assigned from standard template: ${rawStdDoc.title}`,
       company: { connect: { id: companyId } },
       ...(dto.userId ? { user: { connect: { id: dto.userId } } } : {}),
+      ...(dto.categoryId ? { category: { connect: { id: dto.categoryId } } } : {}),
     };
 
     return this.documentsRepository.create(data);

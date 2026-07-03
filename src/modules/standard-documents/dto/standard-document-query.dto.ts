@@ -1,17 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { DocumentSection } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class StandardDocumentQueryDto {
-  @ApiPropertyOptional({
-    enum: DocumentSection,
-    description: 'Filter templates by section',
-  })
-  @IsEnum(DocumentSection)
-  @IsOptional()
-  section?: DocumentSection;
-
   @ApiPropertyOptional({
     description:
       'Filter to show only archived, only active, or all. Defaults to active only.',

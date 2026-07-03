@@ -22,6 +22,11 @@ export class AssignStandardDocumentDto {
   @IsOptional()
   userId?: string;
 
+  @ApiPropertyOptional({ description: 'Category ID to assign the document to (optional)' })
+  @IsUUID()
+  @IsOptional()
+  categoryId?: string;
+
   @ApiPropertyOptional({ description: 'Company ID (required for Super Admin callers)' })
   @IsUUID()
   @IsOptional()
