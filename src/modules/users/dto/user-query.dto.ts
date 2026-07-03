@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UserQueryDto {
   @ApiPropertyOptional({ description: 'Filter users by first name or last name substring' })
@@ -31,4 +31,23 @@ export class UserQueryDto {
   @Min(1)
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({ description: 'Filter by archive status: true = archived only, false = active only, omit = all' })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value; // allow 'all' string passthrough
+  })
+  archived?: boolean | string;
+
+  @ApiPropertyOptional({ description: 'Filter by active status' })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  isActive?: boolean;
 }

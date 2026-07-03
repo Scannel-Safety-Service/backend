@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Company } from '@prisma/client';
+import { Company, Role } from '@prisma/client';
 import { CompaniesRepository } from './companies.repository';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -15,8 +15,24 @@ export class CompaniesService {
     });
   }
 
-  async findAll(): Promise<Company[]> {
-    return this.companiesRepository.findAll();
+  async findAll(): Promise<any[]> {
+    const companies = await this.companiesRepository.findAll();
+    return companies.map((company) => {
+      // Find the most suitable user to impersonate:
+      // 1. COMPANY_ADMIN
+      // 2. COMPANY_USER
+      // 3. APP_USER
+      const adminUser =
+        company.users.find((u) => u.role === Role.COMPANY_ADMIN) ||
+        company.users.find((u) => u.role === Role.COMPANY_USER) ||
+        company.users.find((u) => u.role === Role.APP_USER);
+
+      const { users, ...companyData } = company;
+      return {
+        ...companyData,
+        adminUserId: adminUser ? adminUser.id : null,
+      };
+    });
   }
 
   async findOne(id: string): Promise<Company> {

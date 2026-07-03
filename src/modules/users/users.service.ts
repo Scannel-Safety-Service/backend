@@ -32,6 +32,18 @@ export class UsersService {
       where.userCode = { contains: queryDto.userCode, mode: 'insensitive' };
     }
 
+    // archived filter
+    if (queryDto.archived === true) {
+      where.archivedAt = { not: null };
+    } else if (queryDto.archived === false) {
+      where.archivedAt = null;
+    }
+    // archived === 'all' or undefined → no filter applied
+
+    if (queryDto.isActive !== undefined) {
+      where.isActive = queryDto.isActive;
+    }
+
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
 
