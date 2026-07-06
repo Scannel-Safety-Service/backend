@@ -14,6 +14,20 @@ class EnvironmentVariables {
   @IsNumber()
   PORT: number = 3000;
 
+  @IsNumber()
+  @IsOptional()
+  THROTTLER_TTL: number = 60000;
+
+  @IsNumber()
+  @IsOptional()
+  THROTTLER_LIMIT: number = 100;
+
+  @IsNumber()
+  @IsOptional()
+  THROTTLER_AUTH_LIMIT: number = 5;
+
+
+
   @IsString()
   @IsNotEmpty()
   DATABASE_URL!: string;
