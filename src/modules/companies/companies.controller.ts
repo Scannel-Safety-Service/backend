@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseInterceptors } from '@nestjs/common';
+import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
+import { CacheEvict } from '../../common/decorators/cache-evict.decorator';
+import { CacheEvictInterceptor } from '../../common/interceptors/cache-evict.interceptor';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -19,6 +22,8 @@ export class CompaniesController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'companies' })
   @ApiOperation({ summary: 'Create a new company (Super Admin only)' })
   @ApiResponse({ status: 201, description: 'Company created successfully' })
   async create(@Body() dto: CreateCompanyDto) {
@@ -31,6 +36,7 @@ export class CompaniesController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'List all companies (Super Admin only)' })
   async findAll() {
     const companies = await this.companiesService.findAll();
@@ -42,6 +48,7 @@ export class CompaniesController {
 
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({
     summary: 'Get details of a company (Super Admin or matching Company Admin)',
   })
@@ -55,6 +62,8 @@ export class CompaniesController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'companies' })
   @ApiOperation({
     summary: 'Update company settings (Super Admin or matching Company Admin)',
   })

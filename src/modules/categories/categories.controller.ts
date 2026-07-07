@@ -9,7 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
+import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
+import { CacheEvict } from '../../common/decorators/cache-evict.decorator';
+import { CacheEvictInterceptor } from '../../common/interceptors/cache-evict.interceptor';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -33,6 +37,8 @@ export class CategoriesController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({
     summary:
       'Create a new category (auto-scoped to caller company except Super Admin)',
@@ -53,6 +59,7 @@ export class CategoriesController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'List and filter categories (auto-scoped)' })
   async findAll(
     @Query() queryDto: CategoryQueryDto,
@@ -68,6 +75,7 @@ export class CategoriesController {
 
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'Get details of a category (scoping applied)' })
   async findOne(@Param('id') id: string) {
     const category = await this.categoriesService.findOne(id);
@@ -79,6 +87,8 @@ export class CategoriesController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({ summary: 'Update a category' })
   async update(
     @Param('id') id: string,
@@ -98,6 +108,8 @@ export class CategoriesController {
 
   @Patch(':id/archive')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({ summary: 'Soft archive a category (reversible)' })
   async archive(
     @Param('id') id: string,
@@ -112,6 +124,8 @@ export class CategoriesController {
 
   @Patch(':id/restore')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({ summary: 'Restore an archived category' })
   async restore(
     @Param('id') id: string,
@@ -127,6 +141,8 @@ export class CategoriesController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({
     summary: 'Irreversibly delete a category (must be archived first)',
   })

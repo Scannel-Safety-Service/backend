@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -45,6 +46,11 @@ import { PrismaModule } from './prisma/prisma.module';
           },
         ],
       }),
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 300000, // 5 minutes (in ms for cache-manager v5)
+      max: 500, // Limit maximum items in cache memory
     }),
     PrismaModule,
     MailerModule,
