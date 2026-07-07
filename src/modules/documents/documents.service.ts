@@ -9,7 +9,7 @@ import { Prisma, Document } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { DocumentQueryDto } from './dto/document-query.dto';
+import { DocumentQueryDto, DocumentScope } from './dto/document-query.dto';
 import { DocumentsRepository } from './documents.repository';
 import { StorageService } from '../../shared/storage/storage.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -148,10 +148,41 @@ export class DocumentsService {
       where.archivedAt = null;
     }
 
-    // ── Project / Folder scope ────────────────────────────────────────────────
-    // Allows interrogation search to be narrowed to a specific project or folder
-    if (queryDto.projectId) {
-      where.projectId = queryDto.projectId;
+    // ── Document Scope / Isolation ───────────────────────────────────────────
+    const scope = queryDto.scope || this.deriveDefaultScope(queryDto);
+
+    switch (scope) {
+      case DocumentScope.COMPANY:
+        where.projectId = null;
+        where.userId = null;
+        where.assetId = null;
+        break;
+      case DocumentScope.PROJECT:
+        if (queryDto.projectId) {
+          where.projectId = queryDto.projectId;
+        } else {
+          where.projectId = { not: null };
+        }
+        break;
+      case DocumentScope.INDIVIDUAL:
+        if (queryDto.userId) {
+          where.userId = queryDto.userId;
+        } else if (queryDto.signatoryId) {
+          where.userId = queryDto.signatoryId;
+        } else {
+          where.userId = { not: null };
+        }
+        where.projectId = null;
+        break;
+      case DocumentScope.ASSET:
+        where.projectId = null;
+        where.assetId = { not: null };
+        break;
+      case DocumentScope.GLOBAL:
+      default:
+        // Excludes project-scoped documents by default
+        where.projectId = null;
+        break;
     }
 
     if (queryDto.folderId) {
@@ -548,5 +579,15 @@ export class DocumentsService {
     }
 
     return filePath;
+  }
+
+  private deriveDefaultScope(queryDto: DocumentQueryDto): DocumentScope {
+    if (queryDto.projectId || queryDto.folderId) {
+      return DocumentScope.PROJECT;
+    }
+    if (queryDto.userId || queryDto.signatoryId) {
+      return DocumentScope.INDIVIDUAL;
+    }
+    return DocumentScope.GLOBAL;
   }
 }

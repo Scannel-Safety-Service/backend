@@ -138,6 +138,20 @@ export class CategoriesController {
     };
   }
 
+  @Get(':id/linked-documents')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Get list of documents linked to a category' })
+  async getLinkedDocuments(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const result = await this.categoriesService.getLinkedDocuments(id, user);
+    return {
+      message: 'Linked documents retrieved successfully',
+      data: result,
+    };
+  }
+
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
