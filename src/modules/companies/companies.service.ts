@@ -3,6 +3,7 @@ import { Company } from '@prisma/client';
 import { CompaniesRepository } from './companies.repository';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { CompanyQueryDto } from './dto/company-query.dto';
 
 @Injectable()
 export class CompaniesService {
@@ -15,9 +16,18 @@ export class CompaniesService {
     });
   }
 
-  async findAll(): Promise<any[]> {
-    const companies = await this.companiesRepository.findAll();
-    return companies.map((company) => {
+  async findAll(queryDto: CompanyQueryDto): Promise<{ items: any[]; meta: any }> {
+    const page = queryDto.page || 1;
+    const limit = queryDto.limit || 10;
+    const isActive = queryDto.isActive === 'true' ? true : queryDto.isActive === 'false' ? false : undefined;
+
+    const [companies, total] = await this.companiesRepository.findAndCount(
+      page,
+      limit,
+      isActive,
+    );
+
+    const items = companies.map((company) => {
       // Find an active COMPANY_ADMIN user
       let targetUser = company.users.find(
         (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
@@ -36,6 +46,16 @@ export class CompaniesService {
         adminUserId: targetUser ? targetUser.id : null,
       };
     });
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string): Promise<Company> {

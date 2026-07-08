@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common';
 import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
 import { CacheEvict } from '../../common/decorators/cache-evict.decorator';
 import { CacheEvictInterceptor } from '../../common/interceptors/cache-evict.interceptor';
@@ -13,6 +13,7 @@ import { Role } from '../../common/enums/role.enum';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { CompanyQueryDto } from './dto/company-query.dto';
 
 @ApiTags('companies')
 @ApiBearerAuth()
@@ -38,11 +39,11 @@ export class CompaniesController {
   @Roles(Role.SUPER_ADMIN)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'List all companies (Super Admin only)' })
-  async findAll() {
-    const companies = await this.companiesService.findAll();
+  async findAll(@Query() queryDto: CompanyQueryDto) {
+    const result = await this.companiesService.findAll(queryDto);
     return {
       message: 'Companies retrieved successfully',
-      data: companies,
+      data: result,
     };
   }
 
