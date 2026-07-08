@@ -12,7 +12,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CacheEvict } from '../../common/decorators/cache-evict.decorator';
+import { CacheEvictInterceptor } from '../../common/interceptors/cache-evict.interceptor';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -35,7 +38,8 @@ export class StandardDocumentsController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file'), CacheEvictInterceptor)
+  @CacheEvict({ key: 'standard-documents' })
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new global template (Super Admin only)' })
   async create(
@@ -51,6 +55,7 @@ export class StandardDocumentsController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({
     summary: 'List global template documents (accessible by all users)',
   })
@@ -64,6 +69,7 @@ export class StandardDocumentsController {
 
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'Get details of a global template' })
   async findOne(@Param('id') id: string) {
     const doc = await this.standardDocsService.findOne(id);
@@ -75,7 +81,8 @@ export class StandardDocumentsController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file'), CacheEvictInterceptor)
+  @CacheEvict({ key: 'standard-documents' })
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary:
@@ -95,6 +102,8 @@ export class StandardDocumentsController {
 
   @Patch(':id/archive')
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'standard-documents' })
   @ApiOperation({
     summary: 'Soft archive a global template (Super Admin only)',
   })
@@ -108,6 +117,8 @@ export class StandardDocumentsController {
 
   @Patch(':id/restore')
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'standard-documents' })
   @ApiOperation({
     summary: 'Restore an archived global template (Super Admin only)',
   })
@@ -122,6 +133,8 @@ export class StandardDocumentsController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'standard-documents' })
   @ApiOperation({
     summary:
       'Permanently delete a global template (Super Admin only, must be archived first)',

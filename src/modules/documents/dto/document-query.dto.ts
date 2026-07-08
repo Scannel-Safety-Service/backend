@@ -11,7 +11,23 @@ import {
   Min,
 } from 'class-validator';
 
+export enum DocumentScope {
+  COMPANY = 'COMPANY',
+  PROJECT = 'PROJECT',
+  INDIVIDUAL = 'INDIVIDUAL',
+  ASSET = 'ASSET',
+  GLOBAL = 'GLOBAL',
+}
+
 export class DocumentQueryDto {
+  @ApiPropertyOptional({
+    enum: DocumentScope,
+    description: 'The query scope of the documents (COMPANY, PROJECT, INDIVIDUAL, ASSET, GLOBAL). Defaults to GLOBAL if not specified.',
+  })
+  @IsEnum(DocumentScope)
+  @IsOptional()
+  scope?: DocumentScope;
+
   @ApiPropertyOptional({
     enum: DocumentSection,
     description: 'Filter documents by section',

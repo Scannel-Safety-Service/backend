@@ -260,6 +260,46 @@ export class CategoriesService {
     });
   }
 
+  async getLinkedDocuments(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<{ items: any[]; total: number }> {
+    await this.findOne(id);
+
+    const [items, total] = await this.prismaService.client.$transaction([
+      this.prismaService.client.document.findMany({
+        where: {
+          categoryId: id,
+        },
+        select: {
+          id: true,
+          title: true,
+          originalFileName: true,
+          archivedAt: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 50,
+      }),
+      this.prismaService.client.document.count({
+        where: {
+          categoryId: id,
+        },
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
+  }
+
   async permanentDelete(id: string, user: AuthenticatedUser): Promise<void> {
     const category = await this.findOne(id);
     if (category.companyId === null && user.role !== Role.SUPER_ADMIN) {
@@ -267,11 +307,12 @@ export class CategoriesService {
         'Only Super Admins can permanently delete global categories',
       );
     }
-    if (category.archivedAt === null) {
-      throw new BadRequestException(
-        'Category must be archived first before permanent deletion',
-      );
-    }
+
+    // Nullify category references on documents before deleting the category
+    await this.prismaService.client.document.updateMany({
+      where: { categoryId: id },
+      data: { categoryId: null },
+    });
 
     await this.categoriesRepository.delete(id);
   }

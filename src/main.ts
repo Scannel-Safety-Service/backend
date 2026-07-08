@@ -9,7 +9,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.enableCors();
+  app.set('trust proxy', 1);
+  app.enableCors({
+    exposedHeaders: ['Retry-After'],
+  });
   app.setGlobalPrefix('api/v1');
 
   const configService = app.get(ConfigService);
