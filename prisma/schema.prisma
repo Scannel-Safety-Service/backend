@@ -17,6 +17,8 @@ model Company {
   id          String       @id @default(uuid())
   name        String
   isActive    Boolean      @default(true)
+  archivedAt  DateTime?    // Reversible archive
+  deletedAt   DateTime?    // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt   DateTime     @default(now())
   users       User[]
   categories  Category[]
@@ -37,7 +39,8 @@ model User {
   lastName        String
   role            Role
   isActive        Boolean       @default(true)
-  archivedAt      DateTime?     // reversible soft-archive, separate from isActive
+  archivedAt      DateTime?     // Reversible archive
+  deletedAt       DateTime?     // Permanent soft-delete (hidden from UI, stays in DB)
 
   // Tenant link — null only for SUPER_ADMIN
   companyId       String?
@@ -135,7 +138,8 @@ model Category {
   
   assignments CategoryUser[]
   
-  archivedAt  DateTime?
+  archivedAt  DateTime?       // Reversible archive
+  deletedAt   DateTime?       // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   documents   Document[]
@@ -177,7 +181,8 @@ model Document {
   originalFileName String
   documentType     String?         // e.g. INSPECTION_REPORT, SIGN_OFF, PERMIT, CERTIFICATE
   inspectionType   String?         // e.g. DAILY, WEEKLY, MONTHLY, ANNUAL, ADHOC
-  archivedAt       DateTime?
+  archivedAt       DateTime?       // Reversible archive
+  deletedAt        DateTime?       // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -207,9 +212,10 @@ model StandardDocument {
   fileUrl          String
   originalFileName String
   description      String?
-  archivedAt       DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  archivedAt       DateTime?  // Reversible archive
+  deletedAt        DateTime?  // Permanent soft-delete (hidden from UI, stays in DB)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
 
 
@@ -220,7 +226,8 @@ model Individual {
   userId     String
   user       User       @relation(fields: [userId], references: [id])
   name       String
-  archivedAt DateTime?
+  archivedAt DateTime?  // Reversible archive
+  deletedAt  DateTime?  // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   reminders  Reminder[]
@@ -242,7 +249,8 @@ model Reminder {
   dueDate      DateTime
   reminderDate DateTime?
   completedAt  DateTime?
-  archivedAt   DateTime?
+  archivedAt   DateTime?   // Reversible archive
+  deletedAt    DateTime?   // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -273,8 +281,9 @@ model Asset {
   description  String
   expiryDate   DateTime      // Drives Traffic Light compliance system (Module 2)
 
-  // Soft-delete: never permanently delete, only archive
-  archivedAt   DateTime?
+  // Two-phase soft-delete:
+  archivedAt   DateTime?     // Reversible archive
+  deletedAt    DateTime?     // Permanent soft-delete (hidden from UI, stays in DB)
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -282,9 +291,14 @@ model Asset {
   // Related compliance certificates / inspection reports
   documents    Document[]
 
+  // Allocated Project (optional)
+  projectId    String?
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   @@index([companyId])
   @@index([expiryDate])         // Enables fast dashboard expiry-range queries
   @@index([category])
+  @@index([projectId])
 }
 
 // ---------------------------------------------------------------------------
@@ -297,11 +311,13 @@ model Project {
   company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name        String
   year        Int       // Used for the Year-Based Hierarchy (e.g., 2025, 2026, 2027)
-  archivedAt  DateTime? // Part of the dual-gated soft-delete security pattern
+  archivedAt  DateTime? // Reversible archive
+  deletedAt   DateTime? // Permanent soft-delete (hidden from UI, stays in DB)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   folders     Folder[]
   documents   Document[]
+  assets      Asset[]
 
   @@index([companyId])
   @@index([year])

@@ -7,6 +7,7 @@ import {
   IsISO8601,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
 } from 'class-validator';
 
@@ -88,4 +89,12 @@ export class AssetQueryDto {
   @Min(1)
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Filter assets by project ID',
+    example: 'd3b07384-d113-4ec5-a587-353d9859f515',
+  })
+  @IsUUID()
+  @IsOptional()
+  projectId?: string;
 }

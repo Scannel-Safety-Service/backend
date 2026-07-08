@@ -81,11 +81,11 @@ export class ProjectsService {
 
     if (queryDto.archived === 'true') {
       where.archivedAt = { not: null };
-    } else if (queryDto.archived === 'all') {
-      // Return both active and archived
-    } else {
+    } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     const items = await this.repository.findMany(where);
 
@@ -107,9 +107,13 @@ export class ProjectsService {
     };
   }
 
-  async findOne(id: string): Promise<Project> {
-    const project = await this.repository.findById(id);
+  async findOne(id: string): Promise<Project & { folders: any[] }> {
+    const project = await this.repository.findByIdWithFolders(id);
     if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((project as any).deletedAt !== null) {
       throw new NotFoundException('Project not found');
     }
     return project;
@@ -149,15 +153,21 @@ export class ProjectsService {
     return this.repository.update(id, { archivedAt: null });
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the project to be archived first.
+   */
   async permanentDelete(id: string): Promise<void> {
     const project = await this.findOne(id);
     if (project.archivedAt === null) {
       throw new BadRequestException(
-        'Project must be archived first before permanent deletion',
+        'Project must be archived before permanent deletion',
       );
     }
-    await this.repository.delete(id);
+    await this.repository.update(id, { deletedAt: new Date() } as any);
   }
+
 
   async uploadDocument(
     projectId: string,

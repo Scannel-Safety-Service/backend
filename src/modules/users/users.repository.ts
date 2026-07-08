@@ -77,10 +77,5 @@ export class UsersRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<User> {
-    return this.client.user.delete({
-      where: { id },
-    });
-  }
 }
+

@@ -52,10 +52,5 @@ export class IndividualsRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<Individual> {
-    return this.client.individual.delete({
-      where: { id },
-    });
-  }
 }
+

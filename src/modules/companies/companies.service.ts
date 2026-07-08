@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Company } from '@prisma/client';
 import { CompaniesRepository } from './companies.repository';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -17,6 +17,7 @@ export class CompaniesService {
   }
 
   async findAll(queryDto: CompanyQueryDto): Promise<{ items: any[]; meta: any }> {
+    // Permanently soft-deleted records are NEVER visible via API
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
     const isActive = queryDto.isActive === 'true' ? true : queryDto.isActive === 'false' ? false : undefined;
@@ -61,6 +62,10 @@ export class CompaniesService {
   async findOne(id: string): Promise<Company> {
     const company = await this.companiesRepository.findById(id);
     if (!company) {
+      throw new NotFoundException(`Company not found`);
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((company as any).deletedAt !== null) {
       throw new NotFoundException('Company not found');
     }
     return company;
@@ -73,5 +78,36 @@ export class CompaniesService {
       name: dto.name,
       isActive: dto.isActive,
     });
+  }
+
+  async archive(id: string): Promise<Company> {
+    const company = await this.findOne(id);
+    if ((company as any).archivedAt !== null) {
+      throw new BadRequestException('Company is already archived');
+    }
+    return this.companiesRepository.update(id, { archivedAt: new Date() } as any);
+  }
+
+  async restore(id: string): Promise<Company> {
+    const company = await this.findOne(id);
+    if ((company as any).archivedAt === null) {
+      throw new BadRequestException('Company is not archived');
+    }
+    return this.companiesRepository.update(id, { archivedAt: null } as any);
+  }
+
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the company to be archived first.
+   */
+  async permanentDelete(id: string): Promise<void> {
+    const company = await this.findOne(id);
+    if ((company as any).archivedAt === null) {
+      throw new BadRequestException(
+        'Company must be archived before permanent deletion',
+      );
+    }
+    await this.companiesRepository.update(id, { deletedAt: new Date() } as any);
   }
 }

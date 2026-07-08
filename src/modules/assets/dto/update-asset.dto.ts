@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { AssetCategory } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class UpdateAssetDto {
   @ApiPropertyOptional({ description: 'Updated asset name / label' })
@@ -35,4 +35,12 @@ export class UpdateAssetDto {
   @IsDateString()
   @IsOptional()
   expiryDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated Project ID (pass null to allocate to no project)',
+    example: 'd3b07384-d113-4ec5-a587-353d9859f515',
+  })
+  @IsUUID()
+  @IsOptional()
+  projectId?: string | null;
 }

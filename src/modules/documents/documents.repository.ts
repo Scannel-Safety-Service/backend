@@ -82,10 +82,5 @@ export class DocumentsRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<Document> {
-    return this.client.document.delete({
-      where: { id },
-    });
-  }
 }
+

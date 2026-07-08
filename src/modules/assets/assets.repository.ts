@@ -28,6 +28,7 @@ export class AssetsRepository {
         take: limit,
         orderBy: { expiryDate: 'asc' }, // Closest-to-expiry shown first
         include: {
+          project: { select: { id: true, name: true } },
           // Return summary counts only — full document list via GET /assets/:id
           _count: { select: { documents: true } },
         },
@@ -38,10 +39,11 @@ export class AssetsRepository {
     return [items as Asset[], total as number];
   }
 
-  async findById(id: string): Promise<(Asset & { documents: any[] }) | null> {
+  async findById(id: string): Promise<(Asset & { documents: any[]; project: any }) | null> {
     return this.client.asset.findUnique({
       where: { id },
       include: {
+        project: { select: { id: true, name: true } },
         documents: {
           where: { archivedAt: null },
           orderBy: { createdAt: 'desc' },
@@ -63,8 +65,5 @@ export class AssetsRepository {
   async update(id: string, data: Prisma.AssetUpdateInput): Promise<Asset> {
     return this.client.asset.update({ where: { id }, data });
   }
-
-  async delete(id: string): Promise<Asset> {
-    return this.client.asset.delete({ where: { id } });
-  }
 }
+

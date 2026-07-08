@@ -58,4 +58,12 @@ export class CreateAssetDto {
   @IsUUID()
   @IsOptional()
   companyId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional Project ID to allocate the asset to',
+    example: 'd3b07384-d113-4ec5-a587-353d9859f515',
+  })
+  @IsUUID()
+  @IsOptional()
+  projectId?: string;
 }

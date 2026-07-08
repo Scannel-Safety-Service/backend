@@ -50,10 +50,5 @@ export class StandardDocumentsRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<StandardDocument> {
-    return this.prisma.standardDocument.delete({
-      where: { id },
-    });
-  }
 }
+

@@ -44,6 +44,8 @@ export class StandardDocumentsService {
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -68,7 +70,11 @@ export class StandardDocumentsService {
   async findOne(id: string): Promise<StandardDocument> {
     const doc = await this.repository.findById(id);
     if (!doc) {
-      throw new NotFoundException('Standard document template not found');
+      throw new NotFoundException('Standard document not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((doc as any).deletedAt !== null) {
+      throw new NotFoundException('Standard document not found');
     }
     return doc;
   }
@@ -114,23 +120,21 @@ export class StandardDocumentsService {
       throw new BadRequestException('Template is not archived');
     }
 
-    return this.repository.update(id, {
-      archivedAt: null,
-    });
+    return this.repository.update(id, { archivedAt: null });
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Physical file is retained. Requires the template to be archived first.
+   */
   async permanentDelete(id: string): Promise<void> {
     const doc = await this.findOne(id);
     if (doc.archivedAt === null) {
       throw new BadRequestException(
-        'Template must be archived first before permanent deletion',
+        'Template must be archived before permanent deletion',
       );
     }
-
-    // Physically delete file
-    await this.storageService.deleteFile(doc.fileUrl);
-
-    // Delete record from database
-    await this.repository.delete(id);
+    await this.repository.update(id, { deletedAt: new Date() } as any);
   }
 }

@@ -147,6 +147,8 @@ export class DocumentsService {
       // default: active only
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     // ── Document Scope / Isolation ───────────────────────────────────────────
     const scope = queryDto.scope || this.deriveDefaultScope(queryDto);
@@ -264,6 +266,10 @@ export class DocumentsService {
   async findOne(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.documentsRepository.findById(id);
     if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((document as any).deletedAt !== null) {
       throw new NotFoundException('Document not found');
     }
 
@@ -417,6 +423,11 @@ export class DocumentsService {
     });
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Physical file is retained. Requires the document to be archived first.
+   */
   async permanentDelete(id: string, caller: AuthenticatedUser): Promise<void> {
     const document = await this.findOne(id, caller);
     if (
@@ -425,25 +436,12 @@ export class DocumentsService {
     ) {
       throw new NotFoundException('Document not found');
     }
-
     if (document.archivedAt === null) {
       throw new BadRequestException(
-        'Document must be archived first before permanent deletion',
+        'Document must be archived before permanent deletion',
       );
     }
-
-    await this.storageService.deleteFile(document.fileUrl);
-    await this.documentsRepository.delete(id);
-  }
-
-  async directDelete(id: string, caller: AuthenticatedUser): Promise<void> {
-    const document = await this.findOne(id, caller);
-    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
-      throw new NotFoundException('Document not found');
-    }
-
-    await this.storageService.deleteFile(document.fileUrl);
-    await this.documentsRepository.delete(id);
+    await this.documentsRepository.update(id, { deletedAt: new Date() } as any);
   }
 
   /**
