@@ -26,40 +26,40 @@ export class StatsService {
     ] = await Promise.all([
       // Total companies (not permanently deleted)
       this.prisma.company.count({
-        where: { deletedAt: null },
+        where: { isDeleted: false },
       }),
 
       // Active companies
       this.prisma.company.count({
-        where: { deletedAt: null, isActive: true, archivedAt: null },
+        where: { isDeleted: false, archivedAt: null },
       }),
 
       // Total users (not permanently deleted)
       this.prisma.user.count({
-        where: { deletedAt: null },
+        where: { isDeleted: false },
       }),
 
       // Total projects (not permanently deleted)
       this.prisma.project.count({
-        where: { deletedAt: null },
+        where: { isDeleted: false },
       }),
 
       // Total assets (not permanently deleted)
       this.prisma.asset.count({
-        where: { deletedAt: null },
+        where: { isDeleted: false },
       }),
 
       // Assets grouped by category
       this.prisma.asset.groupBy({
         by: ['category'],
         _count: { id: true },
-        where: { deletedAt: null },
+        where: { isDeleted: false },
       }),
 
       // Expired assets
       this.prisma.asset.count({
         where: {
-          deletedAt: null,
+          isDeleted: false,
           expiryDate: { lt: now },
         },
       }),
@@ -67,7 +67,7 @@ export class StatsService {
       // Expiring soon (amber — within 30 days)
       this.prisma.asset.count({
         where: {
-          deletedAt: null,
+          isDeleted: false,
           expiryDate: { gte: now, lte: amberCutoff },
         },
       }),
@@ -75,7 +75,7 @@ export class StatsService {
       // Valid assets (expire after 30 days from now)
       this.prisma.asset.count({
         where: {
-          deletedAt: null,
+          isDeleted: false,
           expiryDate: { gt: amberCutoff },
         },
       }),
@@ -84,21 +84,21 @@ export class StatsService {
       this.prisma.project.groupBy({
         by: ['year'],
         _count: { id: true },
-        where: { deletedAt: null },
+        where: { isDeleted: false },
         orderBy: { year: 'asc' },
       }),
     ]);
 
     // Shape asset-by-category into a simple map
     const categoryMap: Record<string, number> = {};
-    for (const row of assetsByCategory) {
-      categoryMap[row.category] = row._count.id;
+    for (const row of assetsByCategory as any[]) {
+      categoryMap[row.category] = row._count?.id ?? 0;
     }
 
     // Shape projects-by-year into a simple map
     const projectsByYearMap: Record<string, number> = {};
-    for (const row of projectsByYear) {
-      projectsByYearMap[row.year.toString()] = row._count.id;
+    for (const row of projectsByYear as any[]) {
+      projectsByYearMap[row.year.toString()] = row._count?.id ?? 0;
     }
 
     return {

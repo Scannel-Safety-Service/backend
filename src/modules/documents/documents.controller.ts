@@ -88,7 +88,7 @@ export class DocumentsController {
   }
 
   @Get('uploaded')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary:
       'List user-uploaded documents (Uploaded view) — excludes originalFileName, includes uploader name',
