@@ -263,6 +263,51 @@ export class DocumentsService {
   }
 
 
+  /**
+   * Returns only documents uploaded/assigned to a specific user (userId NOT NULL).
+   * Used by the "Uploaded" tab in the company portal.
+   * - originalFileName is excluded from the response at the DB select level.
+   * - Uploader first/last name is included in each row.
+   */
+  async findAllUploaded(queryDto: DocumentQueryDto, caller: AuthenticatedUser) {
+    const where: Prisma.DocumentWhereInput = {
+      // Only user-scoped documents appear in the Uploaded view
+      userId: { not: null },
+    };
+
+    // ── Tenant / Role scoping ─────────────────────────────────────────────────
+    if (caller.role === Role.SUPER_ADMIN) {
+      if (queryDto.companyId) {
+        where.companyId = queryDto.companyId;
+      }
+    } else {
+      where.companyId = caller.companyId!;
+    }
+
+    // Active only; permanently deleted records are never visible
+    where.archivedAt = null;
+    (where as any).deletedAt = null;
+
+    const page = queryDto.page || 1;
+    const limit = queryDto.limit || 100;
+
+    const [items, total] = await this.documentsRepository.findAndCountUploaded(
+      where,
+      page,
+      limit,
+    );
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(id: string, caller: AuthenticatedUser): Promise<Document> {
     const document = await this.documentsRepository.findById(id);
     if (!document) {

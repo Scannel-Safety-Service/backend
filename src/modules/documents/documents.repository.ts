@@ -61,6 +61,43 @@ export class DocumentsRepository {
     return [items as EnrichedDocument[], total as number];
   }
 
+  /**
+   * Paginated find for the "Uploaded" list view.
+   * Uses a select that intentionally excludes originalFileName from the response.
+   * User relation is included to surface the uploader's name.
+   */
+  async findAndCountUploaded(
+    where: Prisma.DocumentWhereInput,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<[any[], number]> {
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const [items, total] = await (this.client.$transaction([
+      this.client.document.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          // originalFileName intentionally excluded from the Uploaded list view
+          fileUrl: true,
+          section: true,
+          createdAt: true,
+          user: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      }),
+      this.client.document.count({ where }),
+    ]) as any);
+
+    return [items, total as number];
+  }
+
   async findById(id: string): Promise<Document | null> {
     return this.client.document.findUnique({
       where: { id },
@@ -83,4 +120,3 @@ export class DocumentsRepository {
     });
   }
 }
-
