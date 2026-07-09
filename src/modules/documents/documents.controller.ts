@@ -74,7 +74,7 @@ export class DocumentsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'List and filter documents (auto-scoped)' })
   async findAll(
     @Query() queryDto: DocumentQueryDto,
@@ -88,7 +88,7 @@ export class DocumentsController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Get document details (scoping applied)' })
   async findOne(
     @Param('id') id: string,
@@ -102,7 +102,7 @@ export class DocumentsController {
   }
 
   @Get('file/:filename')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Stream the uploaded file contents securely (scoping applied)' })
   async getFile(
     @Param('filename') filename: string,

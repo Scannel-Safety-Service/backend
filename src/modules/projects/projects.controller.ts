@@ -54,7 +54,7 @@ export class ProjectsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary: 'List and filter active projects organized by calendar year',
   })
@@ -70,7 +70,7 @@ export class ProjectsController {
   }
 
   @Get(':id/folders')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary:
       'Retrieve folders and their document structures for a specific project',

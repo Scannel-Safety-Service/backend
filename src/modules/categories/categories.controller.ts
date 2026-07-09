@@ -58,7 +58,7 @@ export class CategoriesController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'List and filter categories (auto-scoped)' })
   async findAll(
@@ -74,7 +74,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'Get details of a category (scoping applied)' })
   async findOne(@Param('id') id: string) {

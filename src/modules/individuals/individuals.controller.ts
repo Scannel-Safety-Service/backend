@@ -41,7 +41,7 @@ export class IndividualsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'List and filter individuals (auto-scoped)' })
   async findAll(@Query() queryDto: IndividualQueryDto) {
     const result = await this.individualsService.findAll(queryDto);
@@ -52,7 +52,7 @@ export class IndividualsController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Get details of an individual (scoping applied)' })
   async findOne(@Param('id') id: string) {
     const individual = await this.individualsService.findOne(id);

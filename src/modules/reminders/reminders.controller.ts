@@ -41,7 +41,7 @@ export class RemindersController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'List and filter reminders (auto-scoped)' })
   async findAll(@Query() queryDto: ReminderQueryDto) {
     const result = await this.remindersService.findAll(queryDto);
@@ -52,7 +52,7 @@ export class RemindersController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Get details of a reminder (scoping applied)' })
   async findOne(@Param('id') id: string) {
     const reminder = await this.remindersService.findOne(id);

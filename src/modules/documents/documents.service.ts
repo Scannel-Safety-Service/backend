@@ -122,7 +122,7 @@ export class DocumentsService {
       // COMPANY_ADMIN is always scoped to their own company — no override allowed
       where.companyId = caller.companyId!;
     } else {
-      // COMPANY_USER / APP_USER — can only see docs assigned to them or company-wide
+      // COMPANY_USER — can only see docs assigned to them or company-wide
       where.companyId = caller.companyId!;
       where.OR = [
         { userId: caller.userId },

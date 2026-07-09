@@ -43,14 +43,30 @@ export class AuthService {
     let companyId: string | null = null;
 
     if (creator.role === Role.SUPER_ADMIN) {
-      if (dto.companyName) {
-        const company = await this.authRepository.createCompany({
-          name: dto.companyName,
-        });
-        companyId = company.id;
-      } else if (dto.companyId) {
+      if (dto.role === Role.COMPANY_ADMIN) {
+        // Company creation flow (from AddCompanyModal): companyName creates a new company
+        if (dto.companyName) {
+          const company = await this.authRepository.createCompany({
+            name: dto.companyName,
+          });
+          companyId = company.id;
+        } else if (dto.companyId) {
+          companyId = dto.companyId;
+        } else {
+          throw new BadRequestException(
+            'A company must be specified when creating a Company Admin',
+          );
+        }
+      } else if (dto.role === Role.COMPANY_USER) {
+        // Regular user creation: companyId is now required
+        if (!dto.companyId) {
+          throw new BadRequestException(
+            'A company must be assigned when creating a Company User',
+          );
+        }
         companyId = dto.companyId;
       }
+      // SUPER_ADMIN creation: no company required
     } else if (creator.role === Role.COMPANY_ADMIN) {
       if (dto.role === Role.SUPER_ADMIN) {
         throw new ForbiddenException(

@@ -13,7 +13,6 @@ export class CompaniesService {
   async create(dto: CreateCompanyDto): Promise<Company> {
     return this.companiesRepository.create({
       name: dto.name,
-      isActive: true,
     });
   }
 
@@ -41,7 +40,6 @@ export class CompaniesService {
       return {
         id: company.id,
         name: company.name,
-        isActive: company.isActive,
         createdAt: company.createdAt,
         adminUserId: targetUser ? targetUser.id : null,
         adminEmail: targetUser ? targetUser.email : null,

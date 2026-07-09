@@ -54,7 +54,7 @@ export class StandardDocumentsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({
     summary: 'List global template documents (accessible by all users)',
@@ -68,7 +68,7 @@ export class StandardDocumentsController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'Get details of a global template' })
   async findOne(@Param('id') id: string) {

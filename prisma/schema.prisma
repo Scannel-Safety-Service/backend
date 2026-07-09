@@ -10,13 +10,11 @@ enum Role {
   SUPER_ADMIN
   COMPANY_ADMIN
   COMPANY_USER
-  APP_USER
 }
 
 model Company {
   id          String       @id @default(uuid())
   name        String
-  isActive    Boolean      @default(true)
   archivedAt  DateTime?    // Reversible archive
   isDeleted   Boolean      @default(false)
   createdAt   DateTime     @default(now())
