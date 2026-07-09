@@ -65,7 +65,7 @@ export class CompaniesService {
       throw new NotFoundException(`Company not found`);
     }
     // Permanently soft-deleted records are invisible via API
-    if ((company as any).deletedAt !== null) {
+    if (company.isDeleted) {
       throw new NotFoundException('Company not found');
     }
     return company;
@@ -97,7 +97,7 @@ export class CompaniesService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the company to be archived first.
    */
@@ -108,6 +108,6 @@ export class CompaniesService {
         'Company must be archived before permanent deletion',
       );
     }
-    await this.companiesRepository.update(id, { deletedAt: new Date() } as any);
+    await this.companiesRepository.update(id, { isDeleted: true });
   }
 }

@@ -148,7 +148,7 @@ export class DocumentsService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     // ── Document Scope / Isolation ───────────────────────────────────────────
     const scope = queryDto.scope || this.deriveDefaultScope(queryDto);
@@ -269,7 +269,7 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((document as any).deletedAt !== null) {
+    if (document.isDeleted) {
       throw new NotFoundException('Document not found');
     }
 
@@ -424,7 +424,7 @@ export class DocumentsService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Physical file is retained. Requires the document to be archived first.
    */
@@ -441,7 +441,7 @@ export class DocumentsService {
         'Document must be archived before permanent deletion',
       );
     }
-    await this.documentsRepository.update(id, { deletedAt: new Date() } as any);
+    await this.documentsRepository.update(id, { isDeleted: true });
   }
 
   /**

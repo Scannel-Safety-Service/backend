@@ -170,7 +170,7 @@ export class DocumentsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Soft-permanently delete a document (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete a document (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Document soft-permanently deleted' })
   async permanentDelete(

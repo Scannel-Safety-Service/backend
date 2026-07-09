@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Role } from '../../common/enums/role.enum';
 import { hashToken } from '../../shared/utils/hash.util';
+import { formatUserCode } from '../../shared/utils/user-code.util';
 import { MailerService } from '../../shared/mailer/mailer.service';
 import { AuthRepository } from './auth.repository';
 import { LoginDto } from './dto/login.dto';
@@ -84,7 +85,7 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: dto.role,
-        userCode: dto.userCode || null,
+        userCode: formatUserCode(dto.userCode),
         isActive,
       };
 
@@ -99,7 +100,7 @@ export class AuthService {
       // Handle Prisma unique constraint error for companyId + userCode
       if (error.code === 'P2002') {
         throw new ConflictException(
-          'User code already exists within this company',
+          'User code already in use. Please choose a unique user code.',
         );
       }
       throw error;

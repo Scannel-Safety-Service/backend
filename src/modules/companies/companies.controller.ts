@@ -108,7 +108,7 @@ export class CompaniesController {
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict({ key: 'companies' })
   @ApiOperation({
-    summary: 'Soft-permanently delete a company (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete a company (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Company soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

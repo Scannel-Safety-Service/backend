@@ -158,7 +158,7 @@ export class CategoriesController {
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({
-    summary: 'Soft-permanently delete a category (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete a category (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Category soft-permanently deleted' })
   async permanentDelete(

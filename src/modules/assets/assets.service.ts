@@ -97,7 +97,7 @@ export class AssetsService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     // Explicit date-range filter (for external queries, e.g. report exports)
     if (queryDto.expiryFrom || queryDto.expiryTo) {
@@ -168,7 +168,7 @@ export class AssetsService {
       throw new NotFoundException('Asset not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((asset as any).deletedAt !== null) {
+    if (asset.isDeleted) {
       throw new NotFoundException('Asset not found');
     }
 
@@ -231,7 +231,7 @@ export class AssetsService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the asset to be archived first (two-gate pattern).
    */
@@ -242,7 +242,7 @@ export class AssetsService {
         'Asset must be archived before permanent deletion',
       );
     }
-    return this.repository.update(id, { deletedAt: new Date() } as any);
+    return this.repository.update(id, { isDeleted: true });
   }
 
   // Rapid Entry — synchronous image/file upload linked to an asset

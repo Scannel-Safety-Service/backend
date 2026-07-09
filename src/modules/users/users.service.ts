@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { formatUserCode } from '../../shared/utils/user-code.util';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UsersRepository } from './users.repository';
@@ -43,7 +45,7 @@ export class UsersService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     if (queryDto.role) {
       where.role = queryDto.role as any;
@@ -79,7 +81,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((user as any).deletedAt !== null) {
+    if (user.isDeleted) {
       throw new NotFoundException('User not found');
     }
     const { passwordHash: _, ...result } = user;
@@ -95,7 +97,7 @@ export class UsersService {
     const updateData: Prisma.UserUpdateInput = {};
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
-    if (dto.userCode !== undefined) updateData.userCode = dto.userCode || null;
+    if (dto.userCode !== undefined) updateData.userCode = formatUserCode(dto.userCode);
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
     if (dto.email !== undefined) {
@@ -112,9 +114,18 @@ export class UsersService {
       updateData.passwordHash = await bcrypt.hash(dto.password, 12);
     }
 
-    const updatedUser = await this.usersRepository.update(id, updateData);
-    const { passwordHash: _, ...result } = updatedUser;
-    return result;
+    try {
+      const updatedUser = await this.usersRepository.update(id, updateData);
+      const { passwordHash: _, ...result } = updatedUser;
+      return result;
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ConflictException(
+          'User code already exists within this company',
+        );
+      }
+      throw error;
+    }
   }
 
   async archive(id: string): Promise<Omit<User, 'passwordHash'>> {
@@ -144,7 +155,7 @@ export class UsersService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the user to be archived first.
    */
@@ -155,7 +166,7 @@ export class UsersService {
         'User must be archived before permanent deletion',
       );
     }
-    await this.usersRepository.update(id, { deletedAt: new Date() } as any);
+    await this.usersRepository.update(id, { isDeleted: true });
   }
 
 

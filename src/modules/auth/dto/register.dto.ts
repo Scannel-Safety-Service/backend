@@ -45,13 +45,13 @@ export class RegisterDto {
   @IsEnum(Role)
   role!: Role;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'USR-001',
-    description: 'Human-readable unique user code within company',
+    description: 'Globally unique human-readable user code (e.g. ESSP-001)',
   })
   @IsString()
-  @IsOptional()
-  userCode?: string;
+  @IsNotEmpty({ message: 'User code is required' })
+  userCode!: string;
 
   @ApiPropertyOptional({
     example: 'a87b1c3d-...',

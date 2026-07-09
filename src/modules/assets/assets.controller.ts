@@ -147,7 +147,7 @@ export class AssetsController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
     summary:
-      'Soft-permanently delete an asset (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+      'Soft-permanently delete an asset (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Asset soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

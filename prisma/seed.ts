@@ -49,7 +49,7 @@ async function main() {
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
-      userCode: null,
+      userCode: 'SUPER-ADMIN',
     },
     {
       email: 'system@scannel.com',
@@ -58,7 +58,7 @@ async function main() {
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
-      userCode: null,
+      userCode: 'SYSTEM-ADMIN',
     },
     // Acme Corporation
     {

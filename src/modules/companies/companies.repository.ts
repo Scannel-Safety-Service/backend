@@ -12,6 +12,7 @@ export class CompaniesRepository {
 
   async findAll(): Promise<any[]> {
     return this.prisma.company.findMany({
+      where: { isDeleted: false },
       include: {
         users: {
           select: {
@@ -32,7 +33,7 @@ export class CompaniesRepository {
   ): Promise<[any[], number]> {
     const skip = (page - 1) * limit;
     const take = limit;
-    const where: Prisma.CompanyWhereInput = {};
+    const where: Prisma.CompanyWhereInput = { isDeleted: false };
 
     if (isActive !== undefined) {
       where.isActive = isActive;
