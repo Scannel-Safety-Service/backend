@@ -87,6 +87,23 @@ export class DocumentsController {
     };
   }
 
+  @Get('uploaded')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @ApiOperation({
+    summary:
+      'List user-uploaded documents (Uploaded view) — excludes originalFileName, includes uploader name',
+  })
+  async findAllUploaded(
+    @Query() queryDto: DocumentQueryDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    const result = await this.documentsService.findAllUploaded(queryDto, caller);
+    return {
+      message: 'Uploaded documents retrieved successfully',
+      data: result,
+    };
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
   @ApiOperation({ summary: 'Get document details (scoping applied)' })
