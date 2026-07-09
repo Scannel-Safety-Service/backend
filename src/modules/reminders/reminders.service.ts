@@ -65,6 +65,8 @@ export class RemindersService {
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -89,6 +91,10 @@ export class RemindersService {
   async findOne(id: string): Promise<Reminder> {
     const reminder = await this.repository.findById(id);
     if (!reminder) {
+      throw new NotFoundException('Reminder not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((reminder as any).deletedAt !== null) {
       throw new NotFoundException('Reminder not found');
     }
     return reminder;
@@ -158,22 +164,24 @@ export class RemindersService {
     if (reminder.archivedAt === null) {
       throw new BadRequestException('Reminder is not archived');
     }
-
-    return this.repository.update(id, {
-      archivedAt: null,
-    });
+    return this.repository.update(id, { archivedAt: null });
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the reminder to be archived first.
+   */
   async permanentDelete(id: string): Promise<void> {
     const reminder = await this.findOne(id);
     if (reminder.archivedAt === null) {
       throw new BadRequestException(
-        'Reminder must be archived first before permanent deletion',
+        'Reminder must be archived before permanent deletion',
       );
     }
-
-    await this.repository.delete(id);
+    await this.repository.update(id, { deletedAt: new Date() } as any);
   }
+
 
   private async verifyUserBelongsToTenant(userId: string): Promise<void> {
     const user = await this.prismaService.client.user.findUnique({

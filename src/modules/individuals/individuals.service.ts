@@ -39,6 +39,8 @@ export class IndividualsService {
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -63,6 +65,10 @@ export class IndividualsService {
   async findOne(id: string): Promise<Individual> {
     const individual = await this.repository.findById(id);
     if (!individual) {
+      throw new NotFoundException('Individual not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((individual as any).deletedAt !== null) {
       throw new NotFoundException('Individual not found');
     }
     return individual;
@@ -99,21 +105,21 @@ export class IndividualsService {
     });
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the individual to be archived first.
+   */
   async permanentDelete(id: string): Promise<void> {
     const individual = await this.findOne(id);
     if (individual.archivedAt === null) {
       throw new BadRequestException(
-        'Individual must be archived first before permanent deletion',
+        'Individual must be archived before permanent deletion',
       );
     }
-
-    // Delete associated reminders first
-    await this.prismaService.client.reminder.deleteMany({
-      where: { individualId: id },
-    });
-
-    await this.repository.delete(id);
+    await this.repository.update(id, { deletedAt: new Date() } as any);
   }
+
 
   private async verifyUserBelongsToTenant(userId: string): Promise<void> {
     const user = await this.prismaService.client.user.findUnique({

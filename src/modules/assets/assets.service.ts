@@ -37,7 +37,23 @@ export class AssetsService {
   // CRUD
   // ---------------------------------------------------------------------------
 
-  async create(dto: CreateAssetDto): Promise<Asset> {
+  async create(dto: CreateAssetDto, caller: AuthenticatedUser): Promise<Asset> {
+    const targetCompanyId =
+      caller.role === Role.SUPER_ADMIN ? dto.companyId : caller.companyId;
+
+    if (!targetCompanyId) {
+      throw new BadRequestException('Company ID is required');
+    }
+
+    if (dto.projectId) {
+      const project = await this.prismaService.client.project.findUnique({
+        where: { id: dto.projectId },
+      });
+      if (!project || project.companyId !== targetCompanyId) {
+        throw new NotFoundException('Project not found');
+      }
+    }
+
     const data: Prisma.AssetCreateInput = {
       name: dto.name,
       serialNumber: dto.serialNumber,
@@ -46,6 +62,10 @@ export class AssetsService {
       expiryDate: new Date(dto.expiryDate),
       company: { connect: { id: '' } }, // companyId auto-injected by TenantPrismaService
     };
+
+    if (dto.projectId) {
+      data.project = { connect: { id: dto.projectId } };
+    }
 
     return this.repository.create(data);
   }
@@ -58,19 +78,26 @@ export class AssetsService {
       where.companyId = queryDto.companyId;
     }
 
+    // Project filter
+    if (queryDto.projectId) {
+      where.projectId = queryDto.projectId;
+    }
+
     // Category filter
     if (queryDto.category) {
       where.category = queryDto.category;
     }
 
-    // Archived state (default: active only)
+    // Archived state (default: active only) — deleted records are ALWAYS excluded
     if (queryDto.archived === 'true') {
       where.archivedAt = { not: null };
     } else if (queryDto.archived === 'all') {
-      // no archivedAt filter — return everything
+      // no archivedAt filter — return both active and archived
     } else {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     // Explicit date-range filter (for external queries, e.g. report exports)
     if (queryDto.expiryFrom || queryDto.expiryTo) {
@@ -140,6 +167,10 @@ export class AssetsService {
     if (!asset) {
       throw new NotFoundException('Asset not found');
     }
+    // Permanently soft-deleted records are invisible via API
+    if ((asset as any).deletedAt !== null) {
+      throw new NotFoundException('Asset not found');
+    }
 
     const now = new Date();
     const amberCutoff = new Date(now);
@@ -155,8 +186,8 @@ export class AssetsService {
     };
   }
 
-  async update(id: string, dto: UpdateAssetDto): Promise<Asset> {
-    await this.findOne(id); // Existence + tenant check via scoped findUnique
+  async update(id: string, dto: UpdateAssetDto, caller: AuthenticatedUser): Promise<Asset> {
+    const asset = await this.findOne(id); // Existence + tenant check via scoped findUnique
 
     const data: Prisma.AssetUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
@@ -165,6 +196,20 @@ export class AssetsService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.expiryDate !== undefined)
       data.expiryDate = new Date(dto.expiryDate);
+
+    if (dto.projectId !== undefined) {
+      if (dto.projectId === null || dto.projectId === '') {
+        data.project = { disconnect: true };
+      } else {
+        const project = await this.prismaService.client.project.findUnique({
+          where: { id: dto.projectId },
+        });
+        if (!project || project.companyId !== asset.companyId) {
+          throw new NotFoundException('Project not found');
+        }
+        data.project = { connect: { id: dto.projectId } };
+      }
+    }
 
     return this.repository.update(id, data);
   }
@@ -185,17 +230,21 @@ export class AssetsService {
     return this.repository.update(id, { archivedAt: null });
   }
 
-  async permanentDelete(id: string): Promise<void> {
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the asset to be archived first (two-gate pattern).
+   */
+  async permanentDelete(id: string): Promise<Asset> {
     const asset = await this.findOne(id);
     if (asset.archivedAt === null) {
       throw new BadRequestException(
-        'Asset must be archived first before permanent deletion',
+        'Asset must be archived before permanent deletion',
       );
     }
-    await this.repository.delete(id);
+    return this.repository.update(id, { deletedAt: new Date() } as any);
   }
 
-  // ---------------------------------------------------------------------------
   // Rapid Entry — synchronous image/file upload linked to an asset
   //
   // Phase 1 (current): Synchronous — file is saved to disk and a Document

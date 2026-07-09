@@ -102,9 +102,9 @@ export class IndividualsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Permanently delete an individual (must be archived first)',
+    summary: 'Soft-permanently delete an individual (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
   })
-  @ApiResponse({ status: 204, description: 'Individual permanently deleted' })
+  @ApiResponse({ status: 204, description: 'Individual soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.individualsService.permanentDelete(id);
   }

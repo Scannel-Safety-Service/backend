@@ -136,13 +136,9 @@ export class StandardDocumentsController {
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict({ key: 'standard-documents' })
   @ApiOperation({
-    summary:
-      'Permanently delete a global template (Super Admin only, must be archived first)',
+    summary: 'Soft-permanently delete a global template (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
   })
-  @ApiResponse({
-    status: 204,
-    description: 'Global template permanently deleted',
-  })
+  @ApiResponse({ status: 204, description: 'Global template soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.standardDocsService.permanentDelete(id);
   }

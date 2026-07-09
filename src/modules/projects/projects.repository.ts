@@ -64,10 +64,5 @@ export class ProjectsRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<Project> {
-    return this.client.project.delete({
-      where: { id },
-    });
-  }
 }
+

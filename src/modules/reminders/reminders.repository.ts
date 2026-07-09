@@ -52,10 +52,5 @@ export class RemindersRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<Reminder> {
-    return this.client.reminder.delete({
-      where: { id },
-    });
-  }
 }
+

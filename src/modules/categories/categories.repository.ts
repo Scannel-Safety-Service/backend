@@ -80,10 +80,5 @@ export class CategoriesRepository {
       data,
     });
   }
-
-  async delete(id: string): Promise<Category> {
-    return this.client.category.delete({
-      where: { id },
-    });
-  }
 }
+

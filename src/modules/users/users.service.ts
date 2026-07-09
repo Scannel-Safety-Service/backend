@@ -17,7 +17,7 @@ export class UsersService {
     private readonly usersRepository: UsersRepository,
     private readonly authService: AuthService,
     private readonly mailerService: MailerService,
-  ) {}
+  ) { }
 
   async findAll(queryDto: UserQueryDto) {
     const where: Prisma.UserWhereInput = {};
@@ -42,6 +42,8 @@ export class UsersService {
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     if (queryDto.role) {
       where.role = queryDto.role as any;
@@ -74,6 +76,10 @@ export class UsersService {
   async findOne(id: string): Promise<Omit<User, 'passwordHash'>> {
     const user = await this.usersRepository.findById(id);
     if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((user as any).deletedAt !== null) {
       throw new NotFoundException('User not found');
     }
     const { passwordHash: _, ...result } = user;
@@ -137,16 +143,21 @@ export class UsersService {
     return result;
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the user to be archived first.
+   */
   async permanentDelete(id: string): Promise<void> {
     const user = await this.findOne(id);
     if (user.archivedAt === null) {
       throw new BadRequestException(
-        'User must be archived first before permanent deletion',
+        'User must be archived before permanent deletion',
       );
     }
-
-    await this.usersRepository.delete(id);
+    await this.usersRepository.update(id, { deletedAt: new Date() } as any);
   }
+
 
   async sendWelcomeEmail(id: string): Promise<void> {
     const user = await this.findOne(id);

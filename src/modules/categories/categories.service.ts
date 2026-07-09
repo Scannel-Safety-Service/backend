@@ -124,6 +124,8 @@ export class CategoriesService {
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
     }
+    // Permanently soft-deleted records are NEVER visible via API
+    (where as any).deletedAt = null;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -148,6 +150,10 @@ export class CategoriesService {
   async findOne(id: string): Promise<Category> {
     const category = await this.categoriesRepository.findById(id);
     if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+    // Permanently soft-deleted records are invisible via API
+    if ((category as any).deletedAt !== null) {
       throw new NotFoundException('Category not found');
     }
     return category;
@@ -300,6 +306,11 @@ export class CategoriesService {
     };
   }
 
+  /**
+   * Soft permanent delete — sets deletedAt timestamp.
+   * Record is permanently hidden from the UI but remains in the database forever.
+   * Requires the category to be archived first.
+   */
   async permanentDelete(id: string, user: AuthenticatedUser): Promise<void> {
     const category = await this.findOne(id);
     if (category.companyId === null && user.role !== Role.SUPER_ADMIN) {
@@ -307,13 +318,11 @@ export class CategoriesService {
         'Only Super Admins can permanently delete global categories',
       );
     }
-
-    // Nullify category references on documents before deleting the category
-    await this.prismaService.client.document.updateMany({
-      where: { categoryId: id },
-      data: { categoryId: null },
-    });
-
-    await this.categoriesRepository.delete(id);
+    if (category.archivedAt === null) {
+      throw new BadRequestException(
+        'Category must be archived before permanent deletion',
+      );
+    }
+    await this.categoriesRepository.update(id, { deletedAt: new Date() } as any);
   }
 }

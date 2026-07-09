@@ -43,8 +43,11 @@ export class AssetsController {
   @ApiOperation({
     summary: 'Create a new asset record (auto-scoped to caller company)',
   })
-  async create(@Body() dto: CreateAssetDto) {
-    const asset = await this.assetsService.create(dto);
+  async create(
+    @Body() dto: CreateAssetDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    const asset = await this.assetsService.create(dto, caller);
     return {
       message: 'Asset created successfully',
       data: asset,
@@ -93,8 +96,12 @@ export class AssetsController {
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({ summary: 'Update asset metadata' })
-  async update(@Param('id') id: string, @Body() dto: UpdateAssetDto) {
-    const asset = await this.assetsService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAssetDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    const asset = await this.assetsService.update(id, dto, caller);
     return {
       message: 'Asset updated successfully',
       data: asset,
@@ -140,9 +147,9 @@ export class AssetsController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
     summary:
-      'Permanently delete an asset. Asset MUST be archived first (double-gated deletion pattern).',
+      'Soft-permanently delete an asset (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
   })
-  @ApiResponse({ status: 204, description: 'Asset permanently deleted' })
+  @ApiResponse({ status: 204, description: 'Asset soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.assetsService.permanentDelete(id);
   }

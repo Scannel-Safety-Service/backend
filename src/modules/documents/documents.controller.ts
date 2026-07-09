@@ -170,25 +170,13 @@ export class DocumentsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Permanently delete a document (must be archived first)',
+    summary: 'Soft-permanently delete a document (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
   })
-  @ApiResponse({ status: 204, description: 'Document permanently deleted' })
+  @ApiResponse({ status: 204, description: 'Document soft-permanently deleted' })
   async permanentDelete(
     @Param('id') id: string,
     @CurrentUser() caller: AuthenticatedUser,
   ) {
     await this.documentsService.permanentDelete(id, caller);
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Directly delete a document without archiving' })
-  @ApiResponse({ status: 204, description: 'Document permanently deleted' })
-  async directDelete(
-    @Param('id') id: string,
-    @CurrentUser() caller: AuthenticatedUser,
-  ) {
-    await this.documentsService.directDelete(id, caller);
   }
 }

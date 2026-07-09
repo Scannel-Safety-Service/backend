@@ -107,7 +107,7 @@ export class ProjectsController {
 
   @Patch(':id/restore')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
-  @ApiOperation({ summary: 'Restore a soft-archived project' })
+  @ApiOperation({ summary: 'Restore an archived project' })
   async restore(@Param('id') id: string) {
     const project = await this.projectsService.restore(id);
     return {
@@ -120,9 +120,9 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Permanently delete a project (must be archived first)',
+    summary: 'Soft-permanently delete a project (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
   })
-  @ApiResponse({ status: 204, description: 'Project permanently deleted' })
+  @ApiResponse({ status: 204, description: 'Project soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {
     await this.projectsService.permanentDelete(id);
   }

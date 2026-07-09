@@ -31,7 +31,7 @@ export class TenantPrismaService {
             const isImpersonating = !!impersonatedBy;
             const resolvedCompanyId =
               (role === Role.SUPER_ADMIN && !isImpersonating)
-                ? (companyId || req?.query?.companyId)
+                ? (companyId || req?.query?.companyId || req?.body?.companyId)
                 : companyId;
 
             const isScoped = TENANT_SCOPED_MODELS.includes(model);
@@ -113,9 +113,14 @@ export class TenantPrismaService {
               // 2. Intercept and auto-inject tenant on creations
               if (operation === 'create') {
                 if (resolvedCompanyId) {
-                  queryArgs.data.company = {
-                    connect: { id: resolvedCompanyId },
-                  };
+                  if (queryArgs.data.companyId !== undefined) {
+                    queryArgs.data.companyId = resolvedCompanyId;
+                    delete queryArgs.data.company;
+                  } else {
+                    queryArgs.data.company = {
+                      connect: { id: resolvedCompanyId },
+                    };
+                  }
                 } else if (queryArgs.data.company?.connect?.id === '') {
                   throw new BadRequestException(
                     `Company ID is required to create a tenant-scoped ${model}`,
@@ -140,9 +145,14 @@ export class TenantPrismaService {
                 }
               } else if (operation === 'upsert') {
                 if (resolvedCompanyId) {
-                  queryArgs.create.company = {
-                    connect: { id: resolvedCompanyId },
-                  };
+                  if (queryArgs.create.companyId !== undefined) {
+                    queryArgs.create.companyId = resolvedCompanyId;
+                    delete queryArgs.create.company;
+                  } else {
+                    queryArgs.create.company = {
+                      connect: { id: resolvedCompanyId },
+                    };
+                  }
                 }
               }
             }
