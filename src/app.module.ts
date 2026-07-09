@@ -24,6 +24,7 @@ import { IndividualsModule } from './modules/individuals/individuals.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { MailerModule } from './shared/mailer/mailer.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -64,6 +65,7 @@ import { PrismaModule } from './prisma/prisma.module';
     RemindersModule,
     AssetsModule,
     ProjectsModule,
+    StatsModule,
   ],
   providers: [
     {
