@@ -17,7 +17,7 @@ export class UsersService {
     private readonly usersRepository: UsersRepository,
     private readonly authService: AuthService,
     private readonly mailerService: MailerService,
-  ) {}
+  ) { }
 
   async findAll(queryDto: UserQueryDto) {
     const where: Prisma.UserWhereInput = {};
