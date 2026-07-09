@@ -97,7 +97,13 @@ export class UsersService {
     const updateData: Prisma.UserUpdateInput = {};
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
-    if (dto.userCode !== undefined) updateData.userCode = formatUserCode(dto.userCode);
+    if (dto.userCode !== undefined) {
+      const formatted = formatUserCode(dto.userCode);
+      if (!formatted) {
+        throw new BadRequestException('User code cannot be empty');
+      }
+      updateData.userCode = formatted;
+    }
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
     if (dto.email !== undefined) {

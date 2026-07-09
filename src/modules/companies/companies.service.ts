@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Company } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { CompaniesRepository } from './companies.repository';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -20,12 +21,10 @@ export class CompaniesService {
     // Permanently soft-deleted records are NEVER visible via API
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
-    const isActive = queryDto.isActive === 'true' ? true : queryDto.isActive === 'false' ? false : undefined;
 
     const [companies, total] = await this.companiesRepository.findAndCount(
       page,
       limit,
-      isActive,
     );
 
     const items = companies.map((company) => {
@@ -45,6 +44,7 @@ export class CompaniesService {
         isActive: company.isActive,
         createdAt: company.createdAt,
         adminUserId: targetUser ? targetUser.id : null,
+        adminEmail: targetUser ? targetUser.email : null,
       };
     });
 
@@ -72,42 +72,53 @@ export class CompaniesService {
   }
 
   async update(id: string, dto: UpdateCompanyDto): Promise<Company> {
-    await this.findOne(id);
+    const company = await this.findOne(id) as any;
 
-    return this.companiesRepository.update(id, {
-      name: dto.name,
-      isActive: dto.isActive,
-    });
-  }
+    let adminUserId: string | undefined;
+    let adminUserData: any | undefined;
 
-  async archive(id: string): Promise<Company> {
-    const company = await this.findOne(id);
-    if ((company as any).archivedAt !== null) {
-      throw new BadRequestException('Company is already archived');
-    }
-    return this.companiesRepository.update(id, { archivedAt: new Date() } as any);
-  }
-
-  async restore(id: string): Promise<Company> {
-    const company = await this.findOne(id);
-    if ((company as any).archivedAt === null) {
-      throw new BadRequestException('Company is not archived');
-    }
-    return this.companiesRepository.update(id, { archivedAt: null } as any);
-  }
-
-  /**
-   * Soft permanent delete — sets isDeleted to true.
-   * Record is permanently hidden from the UI but remains in the database forever.
-   * Requires the company to be archived first.
-   */
-  async permanentDelete(id: string): Promise<void> {
-    const company = await this.findOne(id);
-    if ((company as any).archivedAt === null) {
-      throw new BadRequestException(
-        'Company must be archived before permanent deletion',
+    if (dto.email !== undefined || (dto.password !== undefined && dto.password !== '')) {
+      let adminUser = company.users.find(
+        (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
       );
+      if (!adminUser) {
+        adminUser = company.users.find(
+          (u: any) => u.isActive && u.archivedAt === null,
+        );
+      }
+
+      if (!adminUser) {
+        throw new BadRequestException('No active administrator found for this company to update.');
+      }
+
+      adminUserId = adminUser.id;
+      adminUserData = {};
+
+      if (dto.email !== undefined && dto.email !== adminUser.email) {
+        const existing = await this.companiesRepository.findUserByEmailExcludeId(dto.email, adminUser.id);
+        if (existing) {
+          throw new BadRequestException('Email address is already in use.');
+        }
+        adminUserData.email = dto.email;
+      }
+
+      if (dto.password !== undefined && dto.password !== '') {
+        adminUserData.passwordHash = await bcrypt.hash(dto.password, 12);
+      }
     }
-    await this.companiesRepository.update(id, { isDeleted: true });
+
+    return this.companiesRepository.updateCompanyAndAdmin(
+      id,
+      {
+        name: dto.name,
+      },
+      adminUserId,
+      adminUserData,
+    );
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.findOne(id);
+    await this.companiesRepository.deleteCompany(id);
   }
 }

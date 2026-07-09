@@ -29,4 +29,11 @@ export class CompanyQueryDto {
   @IsString()
   @IsOptional()
   isActive?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter companies by archived status ("true" or "false")',
+  })
+  @IsString()
+  @IsOptional()
+  archived?: string;
 }

@@ -119,6 +119,10 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
+    if (user.company && user.company.isDeleted) {
+      throw new UnauthorizedException('Company has been deleted');
+    }
+
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
@@ -158,6 +162,15 @@ export class AuthService {
       tokenRecord.expiresAt < new Date()
     ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.authRepository.findUserById(userId);
+    if (!user || !user.isActive || user.archivedAt !== null || user.isDeleted) {
+      throw new UnauthorizedException('Account is inactive or archived');
+    }
+
+    if (user.company && user.company.isDeleted) {
+      throw new UnauthorizedException('Company has been deleted');
     }
 
     await this.authRepository.revokeRefreshToken(hashed);
@@ -273,9 +286,15 @@ export class AuthService {
       throw new NotFoundException('Target user not found');
     }
 
-    if (!targetUser.isActive || targetUser.archivedAt !== null) {
+    if (!targetUser.isActive || targetUser.archivedAt !== null || targetUser.isDeleted) {
       throw new BadRequestException(
         'Cannot impersonate inactive or archived user',
+      );
+    }
+
+    if (targetUser.company && targetUser.company.isDeleted) {
+      throw new BadRequestException(
+        'Cannot impersonate user of a deleted company',
       );
     }
 
