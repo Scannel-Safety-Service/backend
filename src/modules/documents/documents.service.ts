@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Prisma, Document } from '@prisma/client';
+import { Prisma, Document, DocumentSection } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
@@ -58,7 +58,53 @@ export class DocumentsService {
       companyId = caller.companyId;
     }
 
-    if (dto.categoryId) {
+    if (
+      dto.section === DocumentSection.COMPANY_DOCUMENTS ||
+      dto.section === DocumentSection.RISK_ASSESSMENT
+    ) {
+      const categoryCount = await this.prismaService.client.category.count({
+        where: {
+          section: dto.section,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (categoryCount === 0) {
+        throw new BadRequestException(
+          `Cannot upload documents under ${
+            dto.section === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } because no active categories are defined. Please create a category first.`,
+        );
+      }
+
+      if (!dto.categoryId) {
+        throw new BadRequestException(
+          `Category is required for ${
+            dto.section === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } documents.`,
+        );
+      }
+
+      const category = await this.prismaService.client.category.findFirst({
+        where: {
+          id: dto.categoryId,
+          section: dto.section,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (!category) {
+        throw new BadRequestException(
+          'The selected category is invalid or does not belong to this company and section.',
+        );
+      }
+    } else if (dto.categoryId) {
       await this.categoriesService.findOne(dto.categoryId);
     }
 
@@ -335,7 +381,55 @@ export class DocumentsService {
 
     const companyId = document.companyId;
 
-    if (dto.categoryId) {
+    const targetSection = dto.section !== undefined ? dto.section : document.section;
+    if (
+      targetSection === DocumentSection.COMPANY_DOCUMENTS ||
+      targetSection === DocumentSection.RISK_ASSESSMENT
+    ) {
+      const categoryCount = await this.prismaService.client.category.count({
+        where: {
+          section: targetSection,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (categoryCount === 0) {
+        throw new BadRequestException(
+          `Cannot save document under ${
+            targetSection === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } because no active categories are defined. Please create a category first.`,
+        );
+      }
+
+      const targetCategoryId = dto.categoryId !== undefined ? dto.categoryId : document.categoryId;
+      if (!targetCategoryId) {
+        throw new BadRequestException(
+          `Category is required for ${
+            targetSection === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } documents.`,
+        );
+      }
+
+      const category = await this.prismaService.client.category.findFirst({
+        where: {
+          id: targetCategoryId,
+          section: targetSection,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (!category) {
+        throw new BadRequestException(
+          'The selected category is invalid or does not belong to this company and section.',
+        );
+      }
+    } else if (dto.categoryId) {
       await this.categoriesService.findOne(dto.categoryId);
     }
 
