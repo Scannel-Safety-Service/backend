@@ -10,16 +10,15 @@ enum Role {
   SUPER_ADMIN
   COMPANY_ADMIN
   COMPANY_USER
-  APP_USER
 }
 
 model Company {
   id          String       @id @default(uuid())
   name        String
-  isActive    Boolean      @default(true)
   archivedAt  DateTime?    // Reversible archive
-  deletedAt   DateTime?    // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted   Boolean      @default(false)
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
   users       User[]
   categories  Category[]
   documents   Document[]
@@ -33,14 +32,14 @@ model Company {
 model User {
   id              String        @id @default(uuid())
   email           String        @unique
-  userCode        String?       // human-readable ID shown in admin UI ("User ID" in filters)
+  userCode        String        @unique // human-readable ID, globally unique across all users
   passwordHash    String
   firstName       String
   lastName        String
   role            Role
   isActive        Boolean       @default(true)
   archivedAt      DateTime?     // Reversible archive
-  deletedAt       DateTime?     // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted       Boolean       @default(false)
 
   // Tenant link — null only for SUPER_ADMIN
   companyId       String?
@@ -61,7 +60,6 @@ model User {
   updatedAt       DateTime      @updatedAt
 
   @@index([companyId])
-  @@unique([companyId, userCode])   // userCode unique within a company, not globally
 }
 
 model RefreshToken {
@@ -139,7 +137,7 @@ model Category {
   assignments CategoryUser[]
   
   archivedAt  DateTime?       // Reversible archive
-  deletedAt   DateTime?       // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted   Boolean         @default(false)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   documents   Document[]
@@ -182,7 +180,7 @@ model Document {
   documentType     String?         // e.g. INSPECTION_REPORT, SIGN_OFF, PERMIT, CERTIFICATE
   inspectionType   String?         // e.g. DAILY, WEEKLY, MONTHLY, ANNUAL, ADHOC
   archivedAt       DateTime?       // Reversible archive
-  deletedAt        DateTime?       // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted        Boolean         @default(false)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -213,7 +211,7 @@ model StandardDocument {
   originalFileName String
   description      String?
   archivedAt       DateTime?  // Reversible archive
-  deletedAt        DateTime?  // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted        Boolean    @default(false)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 }
@@ -227,7 +225,7 @@ model Individual {
   user       User       @relation(fields: [userId], references: [id])
   name       String
   archivedAt DateTime?  // Reversible archive
-  deletedAt  DateTime?  // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted  Boolean    @default(false)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   reminders  Reminder[]
@@ -250,7 +248,7 @@ model Reminder {
   reminderDate DateTime?
   completedAt  DateTime?
   archivedAt   DateTime?   // Reversible archive
-  deletedAt    DateTime?   // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted    Boolean     @default(false)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -283,7 +281,7 @@ model Asset {
 
   // Two-phase soft-delete:
   archivedAt   DateTime?     // Reversible archive
-  deletedAt    DateTime?     // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted    Boolean       @default(false)
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -312,7 +310,7 @@ model Project {
   name        String
   year        Int       // Used for the Year-Based Hierarchy (e.g., 2025, 2026, 2027)
   archivedAt  DateTime? // Reversible archive
-  deletedAt   DateTime? // Permanent soft-delete (hidden from UI, stays in DB)
+  isDeleted   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   folders     Folder[]

@@ -41,7 +41,7 @@ export class IndividualsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'List and filter individuals (auto-scoped)' })
   async findAll(@Query() queryDto: IndividualQueryDto) {
     const result = await this.individualsService.findAll(queryDto);
@@ -52,7 +52,7 @@ export class IndividualsController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Get details of an individual (scoping applied)' })
   async findOne(@Param('id') id: string) {
     const individual = await this.individualsService.findOne(id);
@@ -102,7 +102,7 @@ export class IndividualsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Soft-permanently delete an individual (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete an individual (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Individual soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

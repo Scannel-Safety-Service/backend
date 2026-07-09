@@ -66,7 +66,7 @@ export class RemindersService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -94,7 +94,7 @@ export class RemindersService {
       throw new NotFoundException('Reminder not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((reminder as any).deletedAt !== null) {
+    if (reminder.isDeleted) {
       throw new NotFoundException('Reminder not found');
     }
     return reminder;
@@ -168,7 +168,7 @@ export class RemindersService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the reminder to be archived first.
    */
@@ -179,7 +179,7 @@ export class RemindersService {
         'Reminder must be archived before permanent deletion',
       );
     }
-    await this.repository.update(id, { deletedAt: new Date() } as any);
+    await this.repository.update(id, { isDeleted: true });
   }
 
 

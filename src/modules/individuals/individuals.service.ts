@@ -40,7 +40,7 @@ export class IndividualsService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 10;
@@ -68,7 +68,7 @@ export class IndividualsService {
       throw new NotFoundException('Individual not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((individual as any).deletedAt !== null) {
+    if (individual.isDeleted) {
       throw new NotFoundException('Individual not found');
     }
     return individual;
@@ -106,7 +106,7 @@ export class IndividualsService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the individual to be archived first.
    */
@@ -117,7 +117,7 @@ export class IndividualsService {
         'Individual must be archived before permanent deletion',
       );
     }
-    await this.repository.update(id, { deletedAt: new Date() } as any);
+    await this.repository.update(id, { isDeleted: true });
   }
 
 

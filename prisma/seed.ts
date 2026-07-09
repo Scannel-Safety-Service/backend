@@ -22,11 +22,11 @@ async function main() {
 
   // 1. Create Companies
   const companiesData = [
-    { name: 'Acme Corporation', isActive: true },
-    { name: 'Globex Corporation', isActive: true },
-    { name: 'Initech', isActive: true },
-    { name: 'Umbrella Corporation', isActive: true },
-    { name: 'Hooli', isActive: true },
+    { name: 'Acme Corporation' },
+    { name: 'Globex Corporation' },
+    { name: 'Initech' },
+    { name: 'Umbrella Corporation' },
+    { name: 'Hooli' },
   ];
 
   const companies: { [key: string]: string } = {};
@@ -49,7 +49,7 @@ async function main() {
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
-      userCode: null,
+      userCode: 'SUPER-ADMIN',
     },
     {
       email: 'system@scannel.com',
@@ -58,7 +58,7 @@ async function main() {
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
-      userCode: null,
+      userCode: 'SYSTEM-ADMIN',
     },
     // Acme Corporation
     {
@@ -83,19 +83,19 @@ async function main() {
       email: 'app1@acme.com',
       firstName: 'Charlie',
       lastName: 'Brown',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Acme Corporation',
-      userCode: 'ACM-APP-01',
+      userCode: 'ACM-USR-02',
     },
     {
       email: 'app2@acme.com',
       firstName: 'Diana',
       lastName: 'Prince',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Acme Corporation',
-      userCode: 'ACM-APP-02',
+      userCode: 'ACM-USR-03',
     },
     // Globex Corporation
     {
@@ -120,10 +120,10 @@ async function main() {
       email: 'app1@globex.com',
       firstName: 'Marge',
       lastName: 'Simpson',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Globex Corporation',
-      userCode: 'GBX-APP-01',
+      userCode: 'GBX-USR-02',
     },
     // Initech
     {
@@ -139,10 +139,10 @@ async function main() {
       email: 'app1@initech.com',
       firstName: 'Peter',
       lastName: 'Gibbons',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Initech',
-      userCode: 'INI-APP-01',
+      userCode: 'INI-USR-01',
     },
     // Umbrella Corporation
     {
@@ -158,10 +158,10 @@ async function main() {
       email: 'app1@umbrella.com',
       firstName: 'Alice',
       lastName: 'Abernathy',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Umbrella Corporation',
-      userCode: 'UMB-APP-01',
+      userCode: 'UMB-USR-01',
     },
     // Hooli
     {
@@ -177,10 +177,10 @@ async function main() {
       email: 'app1@hooli.com',
       firstName: 'Richard',
       lastName: 'Hendricks',
-      role: Role.APP_USER,
+      role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Hooli',
-      userCode: 'HOL-APP-01',
+      userCode: 'HOL-USR-01',
     },
   ];
 

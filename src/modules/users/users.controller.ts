@@ -29,7 +29,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary:
       'List and filter users (auto-scoped to caller company except Super Admin)',
@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Get details of a user (scoping applied)' })
   async findOne(@Param('id') id: string) {
     const user = await this.usersService.findOne(id);
@@ -90,7 +90,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Soft-permanently delete a user (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete a user (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'User soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

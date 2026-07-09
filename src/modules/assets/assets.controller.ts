@@ -58,7 +58,7 @@ export class AssetsController {
   // GET /assets
   // ---------------------------------------------------------------------------
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary:
       'List assets (auto-scoped). Supports category, expiryStatus (traffic-light), date range, and archived filters.',
@@ -78,7 +78,7 @@ export class AssetsController {
   // GET /assets/:id
   // ---------------------------------------------------------------------------
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({
     summary: 'Get full asset detail including attached documents',
   })
@@ -147,7 +147,7 @@ export class AssetsController {
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
     summary:
-      'Soft-permanently delete an asset (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+      'Soft-permanently delete an asset (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Asset soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

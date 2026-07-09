@@ -85,7 +85,7 @@ export class ProjectsService {
       where.archivedAt = null;
     }
     // Permanently soft-deleted records are NEVER visible via API
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     const items = await this.repository.findMany(where);
 
@@ -113,17 +113,14 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
     // Permanently soft-deleted records are invisible via API
-    if ((project as any).deletedAt !== null) {
+    if (project.isDeleted) {
       throw new NotFoundException('Project not found');
     }
     return project;
   }
 
   async findFolders(id: string): Promise<any> {
-    const project = await this.repository.findByIdWithFolders(id);
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
+    const project = await this.findOne(id);
     return project;
   }
 
@@ -154,7 +151,7 @@ export class ProjectsService {
   }
 
   /**
-   * Soft permanent delete — sets deletedAt timestamp.
+   * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
    * Requires the project to be archived first.
    */
@@ -165,7 +162,7 @@ export class ProjectsService {
         'Project must be archived before permanent deletion',
       );
     }
-    await this.repository.update(id, { deletedAt: new Date() } as any);
+    await this.repository.update(id, { isDeleted: true });
   }
 
 

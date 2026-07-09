@@ -76,42 +76,16 @@ export class CompaniesController {
     };
   }
 
-  @Patch(':id/archive')
-  @Roles(Role.SUPER_ADMIN)
-  @UseInterceptors(CacheEvictInterceptor)
-  @CacheEvict({ key: 'companies' })
-  @ApiOperation({ summary: 'Soft archive a company (reversible, Super Admin only)' })
-  async archive(@Param('id') id: string) {
-    const company = await this.companiesService.archive(id);
-    return {
-      message: 'Company archived successfully',
-      data: company,
-    };
-  }
-
-  @Patch(':id/restore')
-  @Roles(Role.SUPER_ADMIN)
-  @UseInterceptors(CacheEvictInterceptor)
-  @CacheEvict({ key: 'companies' })
-  @ApiOperation({ summary: 'Restore a soft-archived company (Super Admin only)' })
-  async restore(@Param('id') id: string) {
-    const company = await this.companiesService.restore(id);
-    return {
-      message: 'Company restored successfully',
-      data: company,
-    };
-  }
-
-  @Delete(':id/permanent')
+  @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN)
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict({ key: 'companies' })
   @ApiOperation({
-    summary: 'Soft-permanently delete a company (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft delete a company (sets isDeleted to true)',
   })
-  @ApiResponse({ status: 204, description: 'Company soft-permanently deleted' })
-  async permanentDelete(@Param('id') id: string) {
-    await this.companiesService.permanentDelete(id);
+  @ApiResponse({ status: 204, description: 'Company soft deleted successfully' })
+  async delete(@Param('id') id: string) {
+    await this.companiesService.delete(id);
   }
 }

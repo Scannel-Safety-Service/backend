@@ -14,15 +14,21 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findUserByEmail(email: string): Promise<User | null> {
+  async findUserByEmail(email: string): Promise<(User & { company: Company | null }) | null> {
     return this.prisma.user.findUnique({
       where: { email },
+      include: {
+        company: true,
+      },
     });
   }
 
-  async findUserById(id: string): Promise<User | null> {
+  async findUserById(id: string): Promise<(User & { company: Company | null }) | null> {
     return this.prisma.user.findUnique({
       where: { id },
+      include: {
+        company: true,
+      },
     });
   }
 

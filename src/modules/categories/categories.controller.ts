@@ -58,7 +58,7 @@ export class CategoriesController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'List and filter categories (auto-scoped)' })
   async findAll(
@@ -74,7 +74,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER, Role.APP_USER)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(TenantCacheInterceptor)
   @ApiOperation({ summary: 'Get details of a category (scoping applied)' })
   async findOne(@Param('id') id: string) {
@@ -158,7 +158,7 @@ export class CategoriesController {
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict({ key: 'categories', isTenantScoped: true })
   @ApiOperation({
-    summary: 'Soft-permanently delete a category (sets deletedAt — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete a category (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
   })
   @ApiResponse({ status: 204, description: 'Category soft-permanently deleted' })
   async permanentDelete(

@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Role } from '../../common/enums/role.enum';
 import { hashToken } from '../../shared/utils/hash.util';
+import { formatUserCode } from '../../shared/utils/user-code.util';
 import { MailerService } from '../../shared/mailer/mailer.service';
 import { AuthRepository } from './auth.repository';
 import { LoginDto } from './dto/login.dto';
@@ -42,14 +43,30 @@ export class AuthService {
     let companyId: string | null = null;
 
     if (creator.role === Role.SUPER_ADMIN) {
-      if (dto.companyName) {
-        const company = await this.authRepository.createCompany({
-          name: dto.companyName,
-        });
-        companyId = company.id;
-      } else if (dto.companyId) {
+      if (dto.role === Role.COMPANY_ADMIN) {
+        // Company creation flow (from AddCompanyModal): companyName creates a new company
+        if (dto.companyName) {
+          const company = await this.authRepository.createCompany({
+            name: dto.companyName,
+          });
+          companyId = company.id;
+        } else if (dto.companyId) {
+          companyId = dto.companyId;
+        } else {
+          throw new BadRequestException(
+            'A company must be specified when creating a Company Admin',
+          );
+        }
+      } else if (dto.role === Role.COMPANY_USER) {
+        // Regular user creation: companyId is now required
+        if (!dto.companyId) {
+          throw new BadRequestException(
+            'A company must be assigned when creating a Company User',
+          );
+        }
         companyId = dto.companyId;
       }
+      // SUPER_ADMIN creation: no company required
     } else if (creator.role === Role.COMPANY_ADMIN) {
       if (dto.role === Role.SUPER_ADMIN) {
         throw new ForbiddenException(
@@ -84,7 +101,7 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: dto.role,
-        userCode: dto.userCode || null,
+        userCode: formatUserCode(dto.userCode),
         isActive,
       };
 
@@ -99,7 +116,7 @@ export class AuthService {
       // Handle Prisma unique constraint error for companyId + userCode
       if (error.code === 'P2002') {
         throw new ConflictException(
-          'User code already exists within this company',
+          'User code already in use. Please choose a unique user code.',
         );
       }
       throw error;
@@ -116,6 +133,10 @@ export class AuthService {
 
     if (!user.isActive || user.archivedAt !== null) {
       throw new UnauthorizedException('Account is inactive or archived');
+    }
+
+    if (user.company && user.company.isDeleted) {
+      throw new UnauthorizedException('Company has been deleted');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -157,6 +178,15 @@ export class AuthService {
       tokenRecord.expiresAt < new Date()
     ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.authRepository.findUserById(userId);
+    if (!user || !user.isActive || user.archivedAt !== null || user.isDeleted) {
+      throw new UnauthorizedException('Account is inactive or archived');
+    }
+
+    if (user.company && user.company.isDeleted) {
+      throw new UnauthorizedException('Company has been deleted');
     }
 
     await this.authRepository.revokeRefreshToken(hashed);
@@ -272,9 +302,15 @@ export class AuthService {
       throw new NotFoundException('Target user not found');
     }
 
-    if (!targetUser.isActive || targetUser.archivedAt !== null) {
+    if (!targetUser.isActive || targetUser.archivedAt !== null || targetUser.isDeleted) {
       throw new BadRequestException(
         'Cannot impersonate inactive or archived user',
+      );
+    }
+
+    if (targetUser.company && targetUser.company.isDeleted) {
+      throw new BadRequestException(
+        'Cannot impersonate user of a deleted company',
       );
     }
 
