@@ -332,7 +332,7 @@ export class DocumentsService {
 
     // Active only; permanently deleted records are never visible
     where.archivedAt = null;
-    (where as any).deletedAt = null;
+    where.isDeleted = false;
 
     const page = queryDto.page || 1;
     const limit = queryDto.limit || 100;
