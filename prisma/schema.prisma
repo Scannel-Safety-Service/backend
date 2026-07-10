@@ -15,7 +15,7 @@ enum Role {
 model Company {
   id          String       @id @default(uuid())
   name        String
-  archivedAt  DateTime?    // Reversible archive
+  archivedAt  DateTime?
   isDeleted   Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @default(now()) @updatedAt
@@ -24,76 +24,75 @@ model Company {
   documents   Document[]
   individuals Individual[]
   reminders   Reminder[]
-  assets      Asset[]      // Module 3: Asset Management
+  assets      Asset[]
   projects    Project[]
   folders     Folder[]
 }
 
 model User {
-  id              String        @id @default(uuid())
-  email           String        @unique
-  userCode        String        @unique // human-readable ID, globally unique across all users
-  passwordHash    String
-  firstName       String
-  lastName        String
-  role            Role
-  isActive        Boolean       @default(true)
-  archivedAt      DateTime?     // Reversible archive
-  isDeleted       Boolean       @default(false)
+  id           String    @id @default(uuid())
+  email        String    @unique
+  userCode     String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role
+  isActive     Boolean   @default(true)
+  archivedAt   DateTime?
+  isDeleted    Boolean   @default(false)
 
-  // Tenant link — null only for SUPER_ADMIN
-  companyId       String?
-  company         Company?      @relation(fields: [companyId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
   refreshTokens          RefreshToken[]
   resetTokens            PasswordResetToken[]
   invitationTokens       InvitationToken[]
   impersonationsAsAdmin  ImpersonationLog[]   @relation("AdminImpersonations")
   impersonationsAsTarget ImpersonationLog[]   @relation("TargetImpersonations")
-  createdCategories      Category[]            @relation("CategoryCreator")
+  createdCategories      Category[]           @relation("CategoryCreator")
   categoryAssignments    CategoryUser[]
   documents              Document[]
   individuals            Individual[]
   reminders              Reminder[]
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
 }
 
 model RefreshToken {
-  id          String   @id @default(uuid())
-  tokenHash   String   @unique   // never store raw token
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  createdAt   DateTime @default(now())
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
 
 model PasswordResetToken {
-  id          String   @id @default(uuid())
-  tokenHash   String   @unique
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  expiresAt   DateTime
-  usedAt      DateTime?
-  createdAt   DateTime @default(now())
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
 
 model InvitationToken {
-  id          String   @id @default(uuid())
-  tokenHash   String   @unique
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  expiresAt   DateTime
-  usedAt      DateTime?
-  createdAt   DateTime @default(now())
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }
@@ -123,51 +122,51 @@ enum DocumentSection {
 }
 
 model Category {
-  id          String          @id @default(uuid())
-  name        String
-  section     DocumentSection
-  companyId   String?
-  company     Company?        @relation(fields: [companyId], references: [id])
-  
-  assignToAll Boolean         @default(false)
-  
+  id        String          @id @default(uuid())
+  name      String
+  section   DocumentSection
+  companyId String?
+  company   Company?        @relation(fields: [companyId], references: [id])
+
+  assignToAll Boolean @default(false)
+
   createdById String
-  createdBy   User            @relation("CategoryCreator", fields: [createdById], references: [id])
-  
+  createdBy   User   @relation("CategoryCreator", fields: [createdById], references: [id])
+
   assignments CategoryUser[]
-  
-  archivedAt  DateTime?       // Reversible archive
-  isDeleted   Boolean         @default(false)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  documents   Document[]
+
+  archivedAt DateTime?
+  isDeleted  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  documents  Document[]
 
   @@index([companyId])
   @@index([createdById])
 }
 
 model CategoryUser {
-  id         String   @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt  DateTime @default(now())
 
-  @@unique([categoryId, userId]) 
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([categoryId, userId])
   @@index([categoryId])
   @@index([userId])
 }
 
 model Document {
   id               String          @id @default(uuid())
-  title            String?         // Document display title
-  description      String?         // Optional document description
-  isReviewed       Boolean         @default(false) // Review state
-  reviewedAt       DateTime?       // Time document was reviewed
+  title            String?
+  description      String?
+  isReviewed       Boolean         @default(false)
+  reviewedAt       DateTime?
   companyId        String
   company          Company         @relation(fields: [companyId], references: [id])
   userId           String?
@@ -177,24 +176,20 @@ model Document {
   section          DocumentSection
   fileUrl          String
   originalFileName String
-  documentType     String?         // e.g. INSPECTION_REPORT, SIGN_OFF, PERMIT, CERTIFICATE
-  inspectionType   String?         // e.g. DAILY, WEEKLY, MONTHLY, ANNUAL, ADHOC
-  archivedAt       DateTime?       // Reversible archive
+  documentType     String?
+  inspectionType   String?
+  archivedAt       DateTime?
   isDeleted        Boolean         @default(false)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  // Module 3: Asset attachment — optional FK; on asset deletion pointer is nulled (SetNull)
-  assetId          String?
-  asset            Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  assetId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
 
-  // Module 4: Relational links
-  projectId        String?
-  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  folderId         String?
-  folder           Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
-
-  // Future: Module 1 will add isLocked Boolean, signatureHash String? here
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  folderId  String?
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
   @@index([userId])
@@ -210,12 +205,11 @@ model StandardDocument {
   fileUrl          String
   originalFileName String
   description      String?
-  archivedAt       DateTime?  // Reversible archive
-  isDeleted        Boolean    @default(false)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  archivedAt       DateTime?
+  isDeleted        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
-
 
 model Individual {
   id         String     @id @default(uuid())
@@ -224,7 +218,7 @@ model Individual {
   userId     String
   user       User       @relation(fields: [userId], references: [id])
   name       String
-  archivedAt DateTime?  // Reversible archive
+  archivedAt DateTime?
   isDeleted  Boolean    @default(false)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -247,7 +241,7 @@ model Reminder {
   dueDate      DateTime
   reminderDate DateTime?
   completedAt  DateTime?
-  archivedAt   DateTime?   // Reversible archive
+  archivedAt   DateTime?
   isDeleted    Boolean     @default(false)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -257,10 +251,6 @@ model Reminder {
   @@index([individualId])
 }
 
-// ---------------------------------------------------------------------------
-// Module 3: Asset Management
-// ---------------------------------------------------------------------------
-
 enum AssetCategory {
   PLANT
   LIFTING_EQUIPMENT
@@ -269,53 +259,46 @@ enum AssetCategory {
 }
 
 model Asset {
-  id           String        @id @default(uuid())
-  companyId    String
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  name         String        // Human-readable label / asset name
+  name         String
   serialNumber String
   category     AssetCategory
   description  String
-  expiryDate   DateTime      // Drives Traffic Light compliance system (Module 2)
+  expiryDate   DateTime
 
-  // Two-phase soft-delete:
-  archivedAt   DateTime?     // Reversible archive
-  isDeleted    Boolean       @default(false)
+  archivedAt DateTime?
+  isDeleted  Boolean   @default(false)
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Related compliance certificates / inspection reports
-  documents    Document[]
+  documents Document[]
 
-  // Allocated Project (optional)
-  projectId    String?
-  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
-  @@index([expiryDate])         // Enables fast dashboard expiry-range queries
+  @@index([expiryDate])
   @@index([category])
   @@index([projectId])
 }
 
-// ---------------------------------------------------------------------------
-// Module 4: Project Management
-// ---------------------------------------------------------------------------
-
 model Project {
-  id          String    @id @default(uuid())
-  companyId   String
-  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name        String
-  year        Int       // Used for the Year-Based Hierarchy (e.g., 2025, 2026, 2027)
-  archivedAt  DateTime? // Reversible archive
-  isDeleted   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  folders     Folder[]
-  documents   Document[]
-  assets      Asset[]
+  id         String     @id @default(uuid())
+  companyId  String
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name       String
+  year       Int
+  archivedAt DateTime?
+  isDeleted  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  folders    Folder[]
+  documents  Document[]
+  assets     Asset[]
 
   @@index([companyId])
   @@index([year])
@@ -325,9 +308,9 @@ model Folder {
   id        String     @id @default(uuid())
   projectId String
   project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  companyId String     // Added for automatic tenant scoping
+  companyId String
   company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name      String     // Stores the names of the 13 standard compliance sub-folders
+  name      String
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   documents Document[]
