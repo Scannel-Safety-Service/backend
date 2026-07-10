@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { formatUserCode } from '../../shared/utils/user-code.util';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -49,6 +49,8 @@ export class UsersService {
 
     if (queryDto.role) {
       where.role = queryDto.role as any;
+    } else {
+      where.role = Role.COMPANY_USER;
     }
 
     if (queryDto.isActive !== undefined) {
