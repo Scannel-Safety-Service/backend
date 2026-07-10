@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { Role } from '../../../common/enums/role.enum';
 
@@ -45,13 +46,14 @@ export class RegisterDto {
   @IsEnum(Role)
   role!: Role;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'USR-001',
     description: 'Globally unique human-readable user code (e.g. ESSP-001)',
   })
+  @ValidateIf((o) => o.role !== Role.COMPANY_ADMIN && o.role !== Role.SUPER_ADMIN)
   @IsString()
   @IsNotEmpty({ message: 'User code is required' })
-  userCode!: string;
+  userCode?: string;
 
   @ApiPropertyOptional({
     example: 'a87b1c3d-...',
