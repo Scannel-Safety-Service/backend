@@ -32,6 +32,18 @@ export class AuthRepository {
     });
   }
 
+  async findUserByUserCode(userCode: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { userCode },
+    });
+  }
+
+  async findCompanyById(id: string): Promise<Company | null> {
+    return this.prisma.company.findUnique({
+      where: { id },
+    });
+  }
+
   async findCompanyByName(name: string): Promise<Company | null> {
     return this.prisma.company.findFirst({
       where: { name },

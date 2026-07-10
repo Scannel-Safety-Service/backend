@@ -94,6 +94,49 @@ export class AuthService {
       isActive = false;
     }
 
+    let userCodeToUse = dto.userCode;
+    if (!userCodeToUse) {
+      let prefix = 'ESSP';
+      if (dto.companyName) {
+        const cleanName = dto.companyName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (cleanName.length >= 3) {
+          prefix = cleanName.substring(0, 3);
+        } else if (cleanName.length > 0) {
+          prefix = cleanName;
+        }
+      } else if (companyId) {
+        const company = await this.authRepository.findCompanyById(companyId);
+        if (company) {
+          const cleanName = company.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (cleanName.length >= 3) {
+            prefix = cleanName.substring(0, 3);
+          } else if (cleanName.length > 0) {
+            prefix = cleanName;
+          }
+        }
+      } else if (dto.role === Role.SUPER_ADMIN) {
+        prefix = 'SUP';
+      }
+
+      const roleSuffix = dto.role === Role.COMPANY_ADMIN ? 'ADM' : 'USR';
+
+      let counter = 1;
+      let uniqueCode = '';
+      let exists = true;
+      while (exists) {
+        const paddedCounter = String(counter).padStart(2, '0');
+        uniqueCode = `ESSP-${prefix}-${roleSuffix}-${paddedCounter}`;
+
+        const userWithCode = await this.authRepository.findUserByUserCode(uniqueCode);
+        if (!userWithCode) {
+          exists = false;
+        } else {
+          counter++;
+        }
+      }
+      userCodeToUse = uniqueCode;
+    }
+
     try {
       const userCreateInput: any = {
         email: dto.email,
@@ -101,7 +144,7 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: dto.role,
-        userCode: formatUserCode(dto.userCode),
+        userCode: formatUserCode(userCodeToUse),
         isActive,
       };
 
