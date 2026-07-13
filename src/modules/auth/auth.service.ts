@@ -94,8 +94,8 @@ export class AuthService {
       isActive = false;
     }
 
-    let userCodeToUse = dto.userCode;
-    if (!userCodeToUse) {
+    let userCodeToUse = dto.role === Role.COMPANY_ADMIN ? null : dto.userCode;
+    if (dto.role !== Role.COMPANY_ADMIN && !userCodeToUse) {
       let prefix = 'ESSP';
       if (dto.companyName) {
         const cleanName = dto.companyName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -118,7 +118,7 @@ export class AuthService {
         prefix = 'SUP';
       }
 
-      const roleSuffix = dto.role === Role.COMPANY_ADMIN ? 'ADM' : 'USR';
+      const roleSuffix = 'USR';
 
       let counter = 1;
       let uniqueCode = '';

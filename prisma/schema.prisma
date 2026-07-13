@@ -32,7 +32,7 @@ model Company {
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
-  userCode     String    @unique
+  userCode     String?   @unique
   passwordHash String
   firstName    String
   lastName     String
