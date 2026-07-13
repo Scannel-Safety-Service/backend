@@ -7,6 +7,7 @@ import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { JwtMobileStrategy } from './strategies/jwt-mobile.strategy';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
     AuthRepository,
     JwtAccessStrategy,
     JwtRefreshStrategy,
+    JwtMobileStrategy, // Registered but not applied globally — used by mobile API guards only
   ],
   exports: [AuthService],
 })
