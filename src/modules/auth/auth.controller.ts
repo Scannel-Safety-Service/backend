@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -32,55 +33,22 @@ import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /**
-   * @deprecated Use POST /auth/login/web instead.
-   * Kept for backward compatibility. Reads clientType from the request body.
-   */
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '[Deprecated] Login — use /login/web or /login/mobile',
-    deprecated: true,
-  })
+  @ApiOperation({ summary: 'Login to the application using credentials and channel header' })
   @ApiResponse({ status: 200, description: 'Tokens issued successfully' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto) {
-    const tokens = await this.authService.login(dto);
-    return {
-      message: 'Login successful',
-      data: tokens,
-    };
-  }
-
-  @Public()
-  @Post('login/web')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Web admin login (SUPER_ADMIN & COMPANY_ADMIN only)' })
-  @ApiResponse({ status: 200, description: 'Tokens issued successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 403, description: 'Account not permitted on web channel' })
-  async loginWeb(@Body() dto: LoginDto) {
-    // Force web channel regardless of what the body says
-    dto.clientType = 'web';
-    const tokens = await this.authService.login(dto);
-    return {
-      message: 'Login successful',
-      data: tokens,
-    };
-  }
-
-  @Public()
-  @Post('login/mobile')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mobile login (COMPANY_USER only) — future-ready' })
-  @ApiResponse({ status: 200, description: 'Tokens issued successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 403, description: 'Admin accounts must use web login' })
-  async loginMobile(@Body() dto: LoginDto) {
-    // Force mobile channel regardless of what the body says
-    dto.clientType = 'mobile';
-    const tokens = await this.authService.login(dto);
+  @ApiResponse({ status: 403, description: 'Account not permitted on this channel' })
+  async login(
+    @Body() dto: LoginDto,
+    @Headers('x-client-type') clientTypeHeader?: 'web' | 'mobile',
+  ) {
+    const clientType = clientTypeHeader || dto.clientType || 'web';
+    const tokens = await this.authService.login({
+      ...dto,
+      clientType,
+    });
     return {
       message: 'Login successful',
       data: tokens,
