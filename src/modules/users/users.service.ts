@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { formatUserCode } from '../../shared/utils/user-code.util';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -49,6 +49,8 @@ export class UsersService {
 
     if (queryDto.role) {
       where.role = queryDto.role as any;
+    } else {
+      where.role = Role.COMPANY_USER;
     }
 
     if (queryDto.isActive !== undefined) {
@@ -97,7 +99,9 @@ export class UsersService {
     const updateData: Prisma.UserUpdateInput = {};
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
-    if (dto.userCode !== undefined) {
+    if (user.role === Role.COMPANY_ADMIN) {
+      updateData.userCode = null;
+    } else if (dto.userCode !== undefined) {
       const formatted = formatUserCode(dto.userCode);
       if (!formatted) {
         throw new BadRequestException('User code cannot be empty');

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Role } from '@prisma/client';
 
 const AMBER_THRESHOLD_DAYS = 30;
 
@@ -34,9 +35,14 @@ export class StatsService {
         where: { isDeleted: false, archivedAt: null },
       }),
 
-      // Total users (not permanently deleted)
+      // Total users (not permanently deleted, excluding company/super admins)
       this.prisma.user.count({
-        where: { isDeleted: false },
+        where: {
+          isDeleted: false,
+          role: {
+            notIn: [Role.COMPANY_ADMIN, Role.SUPER_ADMIN],
+          },
+        },
       }),
 
       // Total projects (not permanently deleted)

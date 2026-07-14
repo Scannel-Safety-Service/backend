@@ -94,8 +94,8 @@ export class AuthService {
       isActive = false;
     }
 
-    let userCodeToUse = dto.userCode;
-    if (!userCodeToUse) {
+    let userCodeToUse = dto.role === Role.COMPANY_ADMIN ? null : dto.userCode;
+    if (dto.role !== Role.COMPANY_ADMIN && !userCodeToUse) {
       let prefix = 'ESSP';
       if (dto.companyName) {
         const cleanName = dto.companyName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -118,7 +118,7 @@ export class AuthService {
         prefix = 'SUP';
       }
 
-      const roleSuffix = dto.role === Role.COMPANY_ADMIN ? 'ADM' : 'USR';
+      const roleSuffix = 'USR';
 
       let counter = 1;
       let uniqueCode = '';
@@ -190,10 +190,30 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // ── Channel gate ─────────────────────────────────────────────────────────
+    // Web channel: only SUPER_ADMIN and COMPANY_ADMIN are allowed.
+    // COMPANY_USER accounts are mobile-only. We return a generic 401 so we do
+    // not reveal whether the account exists (Option B / security-first).
+    const clientType = dto.clientType ?? 'web';
+
+    if (clientType === 'web' && user.role === Role.COMPANY_USER) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Mobile channel: only COMPANY_USER is allowed.
+    // Admin accounts must not be accessible via the mobile app.
+    if (clientType === 'mobile' && user.role !== Role.COMPANY_USER) {
+      throw new ForbiddenException(
+        'Admin accounts must log in via the web portal.',
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const tokens = await this.issueTokenPair(
       user.id,
       user.companyId,
       user.role,
+      clientType,
     );
 
     const hashed = hashToken(tokens.refreshToken);
@@ -210,6 +230,7 @@ export class AuthService {
     companyId: string | null,
     role: Role,
     rawRefreshToken: string,
+    clientType: 'web' | 'mobile' = 'web',
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const hashed = hashToken(rawRefreshToken);
     const tokenRecord =
@@ -234,7 +255,7 @@ export class AuthService {
 
     await this.authRepository.revokeRefreshToken(hashed);
 
-    const tokens = await this.issueTokenPair(userId, companyId, role);
+    const tokens = await this.issueTokenPair(userId, companyId, role, clientType);
 
     const newHashed = hashToken(tokens.refreshToken);
     const decoded = this.jwtService.decode(tokens.refreshToken);
@@ -405,6 +426,7 @@ export class AuthService {
     userId: string,
     companyId: string | null,
     role: Role,
+    clientType: 'web' | 'mobile' = 'web',
     impersonatedBy?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessSecret = this.configService.get<string>('jwt.accessSecret');
@@ -416,6 +438,7 @@ export class AuthService {
       sub: userId,
       companyId,
       role,
+      aud: clientType,   // Channel audience — 'web' or 'mobile'
       impersonatedBy,
     };
 
@@ -423,6 +446,7 @@ export class AuthService {
       sub: userId,
       companyId,
       role,
+      aud: clientType,   // Channel audience — mirrors access token
     };
 
     const [accessToken, refreshToken] = await Promise.all([

@@ -16,6 +16,14 @@ async function main() {
   await prisma.refreshToken.deleteMany({});
   await prisma.passwordResetToken.deleteMany({});
   await prisma.invitationToken.deleteMany({});
+  await prisma.reminder.deleteMany({});
+  await prisma.individual.deleteMany({});
+  await prisma.document.deleteMany({});
+  await prisma.folder.deleteMany({});
+  await prisma.project.deleteMany({});
+  await prisma.asset.deleteMany({});
+  await prisma.categoryUser.deleteMany({});
+  await prisma.category.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.company.deleteMany({});
   console.log('Seed: Database clean complete.');

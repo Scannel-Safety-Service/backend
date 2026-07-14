@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -35,11 +36,19 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login and obtain access/refresh token pair' })
+  @ApiOperation({ summary: 'Login to the application using credentials and channel header' })
   @ApiResponse({ status: 200, description: 'Tokens issued successfully' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto) {
-    const tokens = await this.authService.login(dto);
+  @ApiResponse({ status: 403, description: 'Account not permitted on this channel' })
+  async login(
+    @Body() dto: LoginDto,
+    @Headers('x-client-type') clientTypeHeader?: 'web' | 'mobile',
+  ) {
+    const clientType = clientTypeHeader || dto.clientType || 'web';
+    const tokens = await this.authService.login({
+      ...dto,
+      clientType,
+    });
     return {
       message: 'Login successful',
       data: tokens,

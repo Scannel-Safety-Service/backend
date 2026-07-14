@@ -28,18 +28,19 @@ describe('Projects (e2e)', () => {
     prisma = app.get(PrismaService);
 
     // Login and retrieve JWT tokens
-    const login = async (email: string) => {
+    const login = async (email: string, clientType: 'web' | 'mobile' = 'web') => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
+        .set('x-client-type', clientType)
         .send({ email, password: 'password123' })
         .expect(200);
       return response.body.data.accessToken;
     };
 
-    superadminToken = await login('superadmin@scannel.com');
-    acmeAdminToken = await login('admin@acme.com');
-    globexAdminToken = await login('admin@globex.com');
-    acmeUserToken = await login('user1@acme.com');
+    superadminToken = await login('superadmin@scannel.com', 'web');
+    acmeAdminToken = await login('admin@acme.com', 'web');
+    globexAdminToken = await login('admin@globex.com', 'web');
+    acmeUserToken = await login('user1@acme.com', 'mobile');
   });
 
   afterAll(async () => {
@@ -79,7 +80,7 @@ describe('Projects (e2e)', () => {
           name: 'Construction Site Phase 2',
           year: 2026,
         })
-        .expect(403);
+        .expect(401);
     });
 
     it('should seed 13 folders asynchronously', async () => {

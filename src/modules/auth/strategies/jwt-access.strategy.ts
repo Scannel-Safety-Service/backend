@@ -21,6 +21,9 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
       ]),
       ignoreExpiration: false,
       secretOrKey: secret,
+      // Only accept tokens stamped for the web channel.
+      // Mobile tokens (aud: 'mobile') are cryptographically rejected here.
+      audience: 'web',
     });
   }
 
@@ -33,3 +36,4 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     };
   }
 }
+
