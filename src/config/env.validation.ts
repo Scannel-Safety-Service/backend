@@ -48,10 +48,10 @@ class EnvironmentVariables {
   @IsNotEmpty()
   JWT_REFRESH_EXPIRY!: string;
 
-  // Mobile channel JWT — optional until mobile app is live
+  // Mobile channel JWT — required
   @IsString()
-  @IsOptional()
-  JWT_MOBILE_SECRET?: string;
+  @IsNotEmpty()
+  JWT_MOBILE_SECRET!: string;
 
   @IsString()
   @IsOptional()

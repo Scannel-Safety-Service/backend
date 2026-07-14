@@ -79,12 +79,14 @@ export class AuthRepository {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    clientType?: string | null,
   ): Promise<RefreshToken> {
     return this.prisma.refreshToken.create({
       data: {
         tokenHash,
         userId,
         expiresAt,
+        clientType,
       },
     });
   }
