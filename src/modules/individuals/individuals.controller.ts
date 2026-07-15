@@ -32,7 +32,7 @@ export class IndividualsController {
   constructor(private readonly individualsService: IndividualsService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Create a new individual (auto-scoped)' })
   async create(@Body() createDto: CreateIndividualDto) {
     const individual = await this.individualsService.create(createDto);

@@ -392,6 +392,10 @@ export class AuthService {
       companyId: targetUser.companyId,
       role: targetUser.role,
       impersonatedBy: admin.id,
+      firstName: targetUser.firstName,
+      lastName: targetUser.lastName,
+      userCode: targetUser.userCode,
+      companyName: targetUser.company?.name || null,
     };
 
     const accessToken = await this.jwtService.signAsync(accessPayload, {
@@ -445,12 +449,18 @@ export class AuthService {
       ? this.configService.get<string>('jwt.mobileRefreshExpiry')
       : this.configService.get<string>('jwt.refreshExpiry');
 
+    const user = await this.authRepository.findUserById(userId);
+
     const accessPayload = {
       sub: userId,
       companyId,
       role,
       aud: clientType,   // Channel audience — 'web' or 'mobile'
       impersonatedBy,
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      userCode: user?.userCode || null,
+      companyName: user?.company?.name || null,
     };
 
     const refreshPayload = {
@@ -458,6 +468,10 @@ export class AuthService {
       companyId,
       role,
       aud: clientType,   // Channel audience — mirrors access token
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      userCode: user?.userCode || null,
+      companyName: user?.company?.name || null,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
