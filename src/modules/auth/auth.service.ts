@@ -391,6 +391,7 @@ export class AuthService {
       sub: targetUser.id,
       companyId: targetUser.companyId,
       role: targetUser.role,
+      aud: 'web' as const,      // Required: JWT access strategy validates audience: 'web'
       impersonatedBy: admin.id,
       firstName: targetUser.firstName,
       lastName: targetUser.lastName,
