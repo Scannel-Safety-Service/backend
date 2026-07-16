@@ -108,9 +108,14 @@ export class DocumentsService {
       await this.categoriesService.findOne(dto.categoryId);
     }
 
-    if (dto.userId) {
+    let targetUserId = dto.userId;
+    if (caller.role === Role.COMPANY_USER) {
+      targetUserId = caller.userId;
+    }
+
+    if (targetUserId) {
       const user = await this.prismaService.client.user.findUnique({
-        where: { id: dto.userId },
+        where: { id: targetUserId },
       });
       if (!user || user.companyId !== companyId) {
         throw new NotFoundException('Scoped user not found in this company');
@@ -135,8 +140,8 @@ export class DocumentsService {
       data.category = { connect: { id: dto.categoryId } };
     }
 
-    if (dto.userId) {
-      data.user = { connect: { id: dto.userId } };
+    if (targetUserId) {
+      data.user = { connect: { id: targetUserId } };
     }
 
     return this.documentsRepository.create(data);
@@ -174,6 +179,7 @@ export class DocumentsService {
         { userId: caller.userId },
         { userId: null, categoryId: null },
         {
+          userId: null,
           category: {
             OR: [
               { assignToAll: true },

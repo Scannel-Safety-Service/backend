@@ -203,9 +203,7 @@ export class AuthService {
     // Mobile channel: only COMPANY_USER is allowed.
     // Admin accounts must not be accessible via the mobile app.
     if (clientType === 'mobile' && user.role !== Role.COMPANY_USER) {
-      throw new ForbiddenException(
-        'Admin accounts must log in via the web portal.',
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -220,7 +218,7 @@ export class AuthService {
     const decoded = this.jwtService.decode(tokens.refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
-    await this.authRepository.createRefreshToken(user.id, hashed, expiresAt);
+    await this.authRepository.createRefreshToken(user.id, hashed, expiresAt, clientType);
 
     return tokens;
   }
@@ -236,9 +234,14 @@ export class AuthService {
     const tokenRecord =
       await this.authRepository.findRefreshTokenByHash(hashed);
 
+    if (tokenRecord && tokenRecord.revokedAt !== null) {
+      // Replay attack / reuse detected: revoke all active refresh tokens for the user
+      await this.authRepository.revokeAllRefreshTokensForUser(userId);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
     if (
       !tokenRecord ||
-      tokenRecord.revokedAt !== null ||
       tokenRecord.expiresAt < new Date()
     ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -261,7 +264,7 @@ export class AuthService {
     const decoded = this.jwtService.decode(tokens.refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
-    await this.authRepository.createRefreshToken(userId, newHashed, expiresAt);
+    await this.authRepository.createRefreshToken(userId, newHashed, expiresAt, clientType);
 
     return tokens;
   }
@@ -388,7 +391,12 @@ export class AuthService {
       sub: targetUser.id,
       companyId: targetUser.companyId,
       role: targetUser.role,
+      aud: 'web' as const,      // Required: JWT access strategy validates audience: 'web'
       impersonatedBy: admin.id,
+      firstName: targetUser.firstName,
+      lastName: targetUser.lastName,
+      userCode: targetUser.userCode,
+      companyName: targetUser.company?.name || null,
     };
 
     const accessToken = await this.jwtService.signAsync(accessPayload, {
@@ -429,10 +437,20 @@ export class AuthService {
     clientType: 'web' | 'mobile' = 'web',
     impersonatedBy?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const accessSecret = this.configService.get<string>('jwt.accessSecret');
+    const isMobile = clientType === 'mobile';
+    const accessSecret = isMobile
+      ? this.configService.get<string>('jwt.mobileSecret')
+      : this.configService.get<string>('jwt.accessSecret');
     const refreshSecret = this.configService.get<string>('jwt.refreshSecret');
-    const accessExpiry = this.configService.get<string>('jwt.accessExpiry');
-    const refreshExpiry = this.configService.get<string>('jwt.refreshExpiry');
+    
+    const accessExpiry = isMobile
+      ? this.configService.get<string>('jwt.mobileAccessExpiry')
+      : this.configService.get<string>('jwt.accessExpiry');
+    const refreshExpiry = isMobile
+      ? this.configService.get<string>('jwt.mobileRefreshExpiry')
+      : this.configService.get<string>('jwt.refreshExpiry');
+
+    const user = await this.authRepository.findUserById(userId);
 
     const accessPayload = {
       sub: userId,
@@ -440,6 +458,10 @@ export class AuthService {
       role,
       aud: clientType,   // Channel audience — 'web' or 'mobile'
       impersonatedBy,
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      userCode: user?.userCode || null,
+      companyName: user?.company?.name || null,
     };
 
     const refreshPayload = {
@@ -447,6 +469,10 @@ export class AuthService {
       companyId,
       role,
       aud: clientType,   // Channel audience — mirrors access token
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      userCode: user?.userCode || null,
+      companyName: user?.company?.name || null,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

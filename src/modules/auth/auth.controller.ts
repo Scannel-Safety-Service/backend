@@ -81,12 +81,13 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Tokens rotated successfully' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refresh(@Req() req: any) {
-    const { userId, companyId, role, refreshToken } = req.user;
+    const { userId, companyId, role, refreshToken, clientType } = req.user;
     const tokens = await this.authService.refresh(
       userId,
       companyId,
       role,
       refreshToken,
+      clientType,
     );
     return {
       message: 'Tokens rotated successfully',
@@ -94,6 +95,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()

@@ -39,7 +39,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a document (auto-scoped)' })
@@ -127,7 +127,25 @@ export class DocumentsController {
     @Res() res: express.Response,
   ) {
     const filePath = await this.documentsService.getSecureFilePath(filename, caller);
-    res.sendFile(filePath);
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        const error = err as any;
+        // Suppress expected errors when client terminates connection prematurely
+        if (
+          error.code === 'ERR_STREAM_PREMATURE_CLOSE' ||
+          error.code === 'ECONNRESET' ||
+          error.code === 'EPIPE'
+        ) {
+          return;
+        }
+
+        if (!res.headersSent) {
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+            message: 'Error streaming file',
+          });
+        }
+      }
+    });
   }
 
   @Patch(':id')

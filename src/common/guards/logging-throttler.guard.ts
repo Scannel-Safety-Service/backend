@@ -24,7 +24,9 @@ export class LoggingThrottlerGuard extends ThrottlerGuard {
         req.url.endsWith('/accept-invitation'));
 
     if (isSensitiveAuthRoute) {
-      requestProps.limit = this.configService.get<number>('THROTTLER_AUTH_LIMIT') ?? 5;
+      const clientType = req.headers['x-client-type'] || req.body?.clientType || 'web';
+      const isMobile = clientType === 'mobile';
+      requestProps.limit = isMobile ? 7 : (this.configService.get<number>('THROTTLER_AUTH_LIMIT') ?? 5);
     }
 
     return super.handleRequest(requestProps);

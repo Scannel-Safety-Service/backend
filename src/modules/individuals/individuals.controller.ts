@@ -18,6 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateIndividualDto } from './dto/create-individual.dto';
 import { UpdateIndividualDto } from './dto/update-individual.dto';
 import { IndividualQueryDto } from './dto/individual-query.dto';
@@ -30,7 +32,7 @@ export class IndividualsController {
   constructor(private readonly individualsService: IndividualsService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'Create a new individual (auto-scoped)' })
   async create(@Body() createDto: CreateIndividualDto) {
     const individual = await this.individualsService.create(createDto);
@@ -43,8 +45,11 @@ export class IndividualsController {
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
   @ApiOperation({ summary: 'List and filter individuals (auto-scoped)' })
-  async findAll(@Query() queryDto: IndividualQueryDto) {
-    const result = await this.individualsService.findAll(queryDto);
+  async findAll(
+    @Query() queryDto: IndividualQueryDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    const result = await this.individualsService.findAll(queryDto, caller);
     return {
       message: 'Individuals retrieved successfully',
       data: result,

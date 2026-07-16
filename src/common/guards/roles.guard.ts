@@ -24,6 +24,14 @@ export class RolesGuard implements CanActivate {
     if (!user || !user.role) {
       throw new ForbiddenException('User session contains no role permissions');
     }
+
+    // A SuperAdmin acting through an impersonation session retains full access.
+    // The impersonation token carries the impersonated user's role, but the
+    // originating principal is still SUPER_ADMIN — allow everything.
+    if (user.impersonatedBy) {
+      return true;
+    }
+
     const hasRole = requiredRoles.includes(user.role);
     if (!hasRole) {
       throw new ForbiddenException(

@@ -9,6 +9,8 @@ import { UpdateIndividualDto } from './dto/update-individual.dto';
 import { IndividualQueryDto } from './dto/individual-query.dto';
 import { IndividualsRepository } from './individuals.repository';
 import { TenantPrismaService } from '../../prisma/tenant-prisma.service';
+import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { Role } from '../../common/enums/role.enum';
 
 @Injectable()
 export class IndividualsService {
@@ -27,11 +29,16 @@ export class IndividualsService {
     });
   }
 
-  async findAll(queryDto: IndividualQueryDto) {
+  async findAll(queryDto: IndividualQueryDto, caller: AuthenticatedUser) {
     const where: Prisma.IndividualWhereInput = {};
 
-    if (queryDto.userId) {
-      where.userId = queryDto.userId;
+    let targetUserId = queryDto.userId;
+    if (caller.role !== Role.SUPER_ADMIN && caller.role !== Role.COMPANY_ADMIN) {
+      targetUserId = caller.userId;
+    }
+
+    if (targetUserId) {
+      where.userId = targetUserId;
     }
 
     if (queryDto.archived === 'true') {
