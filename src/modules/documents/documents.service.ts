@@ -590,6 +590,21 @@ export class DocumentsService {
   }
 
   /**
+   * Soft delete — sets isDeleted to true.
+   * Record is hidden from the UI. Does not require archiving.
+   */
+  async delete(id: string, caller: AuthenticatedUser): Promise<void> {
+    const document = await this.findOne(id, caller);
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
+      throw new NotFoundException('Document not found');
+    }
+    await this.documentsRepository.update(id, { isDeleted: true });
+  }
+
+  /**
    * Assign a global standard document template to a specific user/company.
    * Instead of re-uploading the file, we create a Document record that
    * references the same fileUrl as the StandardDocument.
