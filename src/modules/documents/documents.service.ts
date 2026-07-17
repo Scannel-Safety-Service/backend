@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -122,10 +123,25 @@ export class DocumentsService {
       }
     }
 
+    const title = dto.title || file.originalname;
+
+    const existingDocument = await this.prismaService.client.document.findFirst({
+      where: {
+        companyId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingDocument) {
+      throw new ConflictException(`A document named "${title}" already exists.`);
+    }
+
     const { fileUrl, originalFileName } =
       await this.storageService.saveFile(file);
-
-    const title = dto.title || file.originalname;
 
     const data: Prisma.DocumentCreateInput = {
       title,
@@ -493,6 +509,24 @@ export class DocumentsService {
       }
     }
 
+    if (dto.title !== undefined && dto.title !== null) {
+      const existingDocument = await this.prismaService.client.document.findFirst({
+        where: {
+          companyId,
+          title: {
+            equals: dto.title,
+            mode: 'insensitive',
+          },
+          isDeleted: false,
+          NOT: { id },
+        },
+      });
+
+      if (existingDocument) {
+        throw new ConflictException(`A document named "${dto.title}" already exists.`);
+      }
+    }
+
     const updateData: Prisma.DocumentUpdateInput = {};
 
     if (dto.title !== undefined) updateData.title = dto.title;
@@ -649,8 +683,25 @@ export class DocumentsService {
       }
     }
 
+    const title = dto.title || rawStdDoc.title;
+
+    const existingDocument = await this.prismaService.client.document.findFirst({
+      where: {
+        companyId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingDocument) {
+      throw new ConflictException(`A document named "${title}" already exists.`);
+    }
+
     const data: Prisma.DocumentCreateInput = {
-      title: dto.title || rawStdDoc.title,
+      title,
       section: dto.section || 'SAFETY_STATEMENT',
       fileUrl: rawStdDoc.fileUrl,
       originalFileName: rawStdDoc.originalFileName || rawStdDoc.title,
