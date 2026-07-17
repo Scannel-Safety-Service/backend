@@ -29,7 +29,6 @@ export class RemindersService {
 
     const data: Prisma.ReminderCreateInput = {
       title: dto.title,
-      description: dto.description,
       dueDate: new Date(dto.dueDate),
       reminderDate: dto.reminderDate ? new Date(dto.reminderDate) : null,
       company: { connect: { id: dto.companyId || '' } }, // Injected by TenantPrismaService or explicitly passed
@@ -120,7 +119,6 @@ export class RemindersService {
 
     const updateData: Prisma.ReminderUpdateInput = {};
     if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.dueDate !== undefined) updateData.dueDate = new Date(dto.dueDate);
     if (dto.reminderDate !== undefined) {
       updateData.reminderDate = dto.reminderDate ? new Date(dto.reminderDate) : null;
@@ -202,17 +200,12 @@ export class RemindersService {
   /**
    * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
-   * Requires the reminder to be archived first.
+   * Cancels any pending notifications.
    */
   async permanentDelete(id: string): Promise<void> {
-    const reminder = await this.findOne(id);
-    if (reminder.archivedAt === null) {
-      throw new BadRequestException(
-        'Reminder must be archived before permanent deletion',
-      );
-    }
-    // Notifications cascade-delete via onDelete: Cascade in schema
+    await this.findOne(id);
     await this.repository.update(id, { isDeleted: true });
+    await this.cancelPendingNotifications(id, 'Reminder permanently deleted');
   }
 
   // ---------------------------------------------------------------------------

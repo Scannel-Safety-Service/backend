@@ -31,7 +31,7 @@ export class ReminderSchedulerService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queueService: QueueService,
-  ) {}
+  ) { }
 
   /**
    * Crash recovery hook — runs immediately on module initialization.

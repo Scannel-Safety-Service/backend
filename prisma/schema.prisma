@@ -239,7 +239,6 @@ model Reminder {
   individualId String?
   individual   Individual? @relation(fields: [individualId], references: [id])
   title        String
-  description  String?
   dueDate      DateTime
   reminderDate DateTime?
   completedAt  DateTime?

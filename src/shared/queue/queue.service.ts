@@ -313,7 +313,6 @@ export class QueueService {
    */
   private buildNotificationPayload(reminder: {
     title: string;
-    description?: string | null;
     dueDate: Date;
     reminderDate?: Date | null;
     user?: { firstName: string; lastName: string } | null;
