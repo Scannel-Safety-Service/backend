@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -192,6 +193,23 @@ export class ProjectsService {
       throw new NotFoundException('Folder not found');
     }
 
+    const title = dto.title || file.originalname;
+
+    const existingDocument = await this.prismaService.client.document.findFirst({
+      where: {
+        companyId: project.companyId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingDocument) {
+      throw new ConflictException(`A document named "${title}" already exists.`);
+    }
+
     // Save the physical file
     const { fileUrl, originalFileName } =
       await this.storageService.saveFile(file);
@@ -205,7 +223,7 @@ export class ProjectsService {
     // Create the Document record — include classification metadata for interrogation search
     const document = await this.prismaService.client.document.create({
       data: {
-        title: dto.title || originalFileName,
+        title,
         description: dto.description || null,
         section,
         fileUrl,

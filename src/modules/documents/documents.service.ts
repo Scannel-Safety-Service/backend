@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -122,10 +123,25 @@ export class DocumentsService {
       }
     }
 
+    const title = dto.title || file.originalname;
+
+    const existingDocument = await this.prismaService.client.document.findFirst({
+      where: {
+        companyId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingDocument) {
+      throw new ConflictException(`A document named "${title}" already exists.`);
+    }
+
     const { fileUrl, originalFileName } =
       await this.storageService.saveFile(file);
-
-    const title = dto.title || file.originalname;
 
     const data: Prisma.DocumentCreateInput = {
       title,
@@ -493,6 +509,24 @@ export class DocumentsService {
       }
     }
 
+    if (dto.title !== undefined && dto.title !== null) {
+      const existingDocument = await this.prismaService.client.document.findFirst({
+        where: {
+          companyId,
+          title: {
+            equals: dto.title,
+            mode: 'insensitive',
+          },
+          isDeleted: false,
+          NOT: { id },
+        },
+      });
+
+      if (existingDocument) {
+        throw new ConflictException(`A document named "${dto.title}" already exists.`);
+      }
+    }
+
     const updateData: Prisma.DocumentUpdateInput = {};
 
     if (dto.title !== undefined) updateData.title = dto.title;
@@ -590,6 +624,21 @@ export class DocumentsService {
   }
 
   /**
+   * Soft delete — sets isDeleted to true.
+   * Record is hidden from the UI. Does not require archiving.
+   */
+  async delete(id: string, caller: AuthenticatedUser): Promise<void> {
+    const document = await this.findOne(id, caller);
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
+      throw new NotFoundException('Document not found');
+    }
+    await this.documentsRepository.update(id, { isDeleted: true });
+  }
+
+  /**
    * Assign a global standard document template to a specific user/company.
    * Instead of re-uploading the file, we create a Document record that
    * references the same fileUrl as the StandardDocument.
@@ -634,8 +683,25 @@ export class DocumentsService {
       }
     }
 
+    const title = dto.title || rawStdDoc.title;
+
+    const existingDocument = await this.prismaService.client.document.findFirst({
+      where: {
+        companyId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingDocument) {
+      throw new ConflictException(`A document named "${title}" already exists.`);
+    }
+
     const data: Prisma.DocumentCreateInput = {
-      title: dto.title || rawStdDoc.title,
+      title,
       section: dto.section || 'SAFETY_STATEMENT',
       fileUrl: rawStdDoc.fileUrl,
       originalFileName: rawStdDoc.originalFileName || rawStdDoc.title,

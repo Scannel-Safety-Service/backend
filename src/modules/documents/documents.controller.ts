@@ -214,4 +214,18 @@ export class DocumentsController {
   ) {
     await this.documentsService.permanentDelete(id, caller);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({
+    summary: 'Soft delete a document (sets isDeleted to true — hidden from UI)',
+  })
+  @ApiResponse({ status: 204, description: 'Document soft-deleted successfully' })
+  async delete(
+    @Param('id') id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
+    await this.documentsService.delete(id, caller);
+  }
 }

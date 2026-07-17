@@ -80,7 +80,7 @@ describe('Projects (e2e)', () => {
           name: 'Construction Site Phase 2',
           year: 2026,
         })
-        .expect(401);
+        .expect(403);
     });
 
     it('should seed 13 folders asynchronously', async () => {
@@ -132,6 +132,47 @@ describe('Projects (e2e)', () => {
 
       // Cleanup uploaded document in DB
       await prisma.document.delete({ where: { id: res.body.data.id } });
+    });
+
+    it('should reject document upload to a project folder with duplicate title', async () => {
+      // 1. First upload
+      const res1 = await request(app.getHttpServer())
+        .post(`/api/v1/projects/${acmeProjectId}/folders/${folderId}/documents`)
+        .set('Authorization', `Bearer ${acmeAdminToken}`)
+        .attach(
+          'file',
+          Buffer.from('dummy contents'),
+          'duplicate-test.pdf',
+        )
+        .field('title', 'Duplicate Safety Plan')
+        .expect(201);
+
+      // 2. Second upload with same title (exact match)
+      await request(app.getHttpServer())
+        .post(`/api/v1/projects/${acmeProjectId}/folders/${folderId}/documents`)
+        .set('Authorization', `Bearer ${acmeAdminToken}`)
+        .attach(
+          'file',
+          Buffer.from('other contents'),
+          'duplicate-test2.pdf',
+        )
+        .field('title', 'Duplicate Safety Plan')
+        .expect(409);
+
+      // 3. Third upload with same title (case-insensitive match)
+      await request(app.getHttpServer())
+        .post(`/api/v1/projects/${acmeProjectId}/folders/${folderId}/documents`)
+        .set('Authorization', `Bearer ${acmeAdminToken}`)
+        .attach(
+          'file',
+          Buffer.from('other contents'),
+          'duplicate-test3.pdf',
+        )
+        .field('title', 'duplicate safety plan')
+        .expect(409);
+
+      // Cleanup
+      await prisma.document.delete({ where: { id: res1.body.data.id } });
     });
 
     it('should prevent cross-tenant uploads (returns 404)', async () => {
