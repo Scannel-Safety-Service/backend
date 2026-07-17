@@ -21,6 +21,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -490,5 +491,27 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Device Token (OneSignal push notification registration)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Registers or refreshes a device's OneSignal subscription ID for a user.
+   * Safe to call on every app launch or permission grant — uses upsert.
+   *
+   * @param userId - The authenticated user's ID
+   * @param dto - Contains the OneSignal subscriptionId and optional deviceType
+   */
+  async registerDeviceToken(
+    userId: string,
+    dto: RegisterDeviceTokenDto,
+  ): Promise<{ id: string; subscriptionId: string; deviceType: string | null }> {
+    return this.authRepository.upsertDeviceToken(
+      userId,
+      dto.subscriptionId,
+      dto.deviceType,
+    );
   }
 }

@@ -27,6 +27,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -155,6 +156,40 @@ export class AuthController {
     return {
       message: 'Invitation accepted successfully.',
       data: null,
+    };
+  }
+
+  /**
+   * Register / refresh a device token for push notifications.
+   *
+   * Call this endpoint:
+   *   - After successful login on a mobile device
+   *   - When the OneSignal subscription ID changes (permission grant, app reinstall)
+   *
+   * The token is stored per-user; one user can have N devices.
+   * The scheduler uses these tokens to fan out notifications to all devices.
+   */
+  @Post('device-token')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Register or refresh a OneSignal device token for push notifications',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device token registered successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid payload' })
+  @ApiResponse({ status: 401, description: 'Unauthorised' })
+  async registerDeviceToken(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RegisterDeviceTokenDto,
+  ) {
+    const token = await this.authService.registerDeviceToken(user.userId, dto);
+    return {
+      message: 'Device token registered successfully',
+      data: token,
     };
   }
 }

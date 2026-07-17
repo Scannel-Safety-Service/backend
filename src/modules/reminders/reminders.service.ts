@@ -3,18 +3,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Reminder } from '@prisma/client';
+import { Prisma, Reminder, ReminderNotificationStatus } from '@prisma/client';
 import { CreateReminderDto } from './dto/create-reminder.dto';
 import { UpdateReminderDto } from './dto/update-reminder.dto';
 import { ReminderQueryDto } from './dto/reminder-query.dto';
 import { RemindersRepository } from './reminders.repository';
 import { TenantPrismaService } from '../../prisma/tenant-prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class RemindersService {
   constructor(
     private readonly repository: RemindersRepository,
     private readonly prismaService: TenantPrismaService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async create(dto: CreateReminderDto): Promise<Reminder> {
@@ -40,7 +42,13 @@ export class RemindersService {
       data.individual = { connect: { id: dto.individualId } };
     }
 
-    return this.repository.create(data);
+    const reminder = await this.repository.create(data);
+
+    // Auto-create the ReminderNotification dispatch record.
+    // scheduledAt = reminderDate if set, otherwise fall back to dueDate.
+    await this.scheduleNotification(reminder);
+
+    return reminder;
   }
 
   async findAll(queryDto: ReminderQueryDto) {
@@ -134,7 +142,16 @@ export class RemindersService {
       }
     }
 
-    return this.repository.update(id, updateData);
+    const updated = await this.repository.update(id, updateData);
+
+    // If the schedule dates changed, re-schedule the notification.
+    const datesChanged =
+      dto.dueDate !== undefined || dto.reminderDate !== undefined;
+    if (datesChanged) {
+      await this.rescheduleNotification(updated);
+    }
+
+    return updated;
   }
 
   async complete(id: string): Promise<Reminder> {
@@ -143,9 +160,14 @@ export class RemindersService {
       throw new BadRequestException('Reminder is already completed');
     }
 
-    return this.repository.update(id, {
+    const completed = await this.repository.update(id, {
       completedAt: new Date(),
     });
+
+    // Cancel any pending notifications — reminder is done
+    await this.cancelPendingNotifications(id, 'Reminder marked as completed');
+
+    return completed;
   }
 
   async archive(id: string): Promise<Reminder> {
@@ -154,9 +176,14 @@ export class RemindersService {
       throw new BadRequestException('Reminder is already archived');
     }
 
-    return this.repository.update(id, {
+    const archived = await this.repository.update(id, {
       archivedAt: new Date(),
     });
+
+    // Cancel any pending notifications — reminder is archived
+    await this.cancelPendingNotifications(id, 'Reminder archived');
+
+    return archived;
   }
 
   async restore(id: string): Promise<Reminder> {
@@ -164,7 +191,12 @@ export class RemindersService {
     if (reminder.archivedAt === null) {
       throw new BadRequestException('Reminder is not archived');
     }
-    return this.repository.update(id, { archivedAt: null });
+    const restored = await this.repository.update(id, { archivedAt: null });
+
+    // Re-schedule notification if the reminderDate/dueDate is still in the future
+    await this.rescheduleNotification(restored);
+
+    return restored;
   }
 
   /**
@@ -179,9 +211,97 @@ export class RemindersService {
         'Reminder must be archived before permanent deletion',
       );
     }
+    // Notifications cascade-delete via onDelete: Cascade in schema
     await this.repository.update(id, { isDeleted: true });
   }
 
+  // ---------------------------------------------------------------------------
+  // Notification lifecycle helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Creates a PENDING ReminderNotification for a newly created reminder.
+   * Uses raw PrismaService (not tenant-scoped) since this runs outside the
+   * request context during background operations.
+   */
+  private async scheduleNotification(reminder: Reminder): Promise<void> {
+    const scheduledAt = reminder.reminderDate ?? reminder.dueDate;
+
+    await this.prisma.reminderNotification.create({
+      data: {
+        reminderId: reminder.id,
+        scheduledAt,
+        status: ReminderNotificationStatus.PENDING,
+        retryCount: 0,
+        maxRetries: 6,
+      },
+    });
+  }
+
+  /**
+   * Re-schedules the notification after a date change or restore.
+   * Cancels all existing PENDING/PROCESSING notifications and creates
+   * a fresh one with the updated schedule.
+   */
+  private async rescheduleNotification(reminder: Reminder): Promise<void> {
+    const scheduledAt = reminder.reminderDate ?? reminder.dueDate;
+
+    // Cancel existing pending notifications for this reminder
+    await this.prisma.reminderNotification.updateMany({
+      where: {
+        reminderId: reminder.id,
+        status: {
+          in: [
+            ReminderNotificationStatus.PENDING,
+            ReminderNotificationStatus.PROCESSING,
+          ],
+        },
+      },
+      data: {
+        status: ReminderNotificationStatus.CANCELLED,
+        errorMessage: 'Reminder dates updated — notification rescheduled',
+      },
+    });
+
+    await this.prisma.reminderNotification.create({
+      data: {
+        reminderId: reminder.id,
+        scheduledAt,
+        status: ReminderNotificationStatus.PENDING,
+        retryCount: 0,
+        maxRetries: 6,
+      },
+    });
+  }
+
+  /**
+   * Cancels all PENDING/PROCESSING notifications for a reminder.
+   * Called when a reminder is completed or archived.
+   */
+  private async cancelPendingNotifications(
+    reminderId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.prisma.reminderNotification.updateMany({
+      where: {
+        reminderId,
+        status: {
+          in: [
+            ReminderNotificationStatus.PENDING,
+            ReminderNotificationStatus.PROCESSING,
+          ],
+        },
+      },
+      data: {
+        status: ReminderNotificationStatus.CANCELLED,
+        errorMessage: reason,
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tenant verification helpers
+  // ---------------------------------------------------------------------------
 
   private async verifyUserBelongsToTenant(userId: string): Promise<void> {
     const user = await this.prismaService.client.user.findUnique({

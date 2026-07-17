@@ -239,4 +239,59 @@ export class AuthRepository {
       data,
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Device Token (OneSignal push subscriptions)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Registers or refreshes a device token for a user.
+   * Uses upsert on subscriptionId to handle:
+   *   - First-time registration (creates new record)
+   *   - Re-registration after app reinstall (updates lastSeenAt)
+   *   - Multiple devices (each has a unique subscriptionId)
+   */
+  async upsertDeviceToken(
+    userId: string,
+    subscriptionId: string,
+    deviceType?: string,
+  ): Promise<{ id: string; subscriptionId: string; deviceType: string | null }> {
+    return this.prisma.deviceToken.upsert({
+      where: { subscriptionId },
+      create: {
+        userId,
+        subscriptionId,
+        deviceType: deviceType ?? null,
+        lastSeenAt: new Date(),
+      },
+      update: {
+        userId,          // Reassign if a different user logs in on same device
+        deviceType: deviceType ?? undefined,
+        lastSeenAt: new Date(),
+      },
+      select: {
+        id: true,
+        subscriptionId: true,
+        deviceType: true,
+      },
+    });
+  }
+
+  /**
+   * Returns all active device tokens for a user.
+   * Used by the notification worker to fan out to all user devices.
+   */
+  async findDeviceTokensByUserId(
+    userId: string,
+  ): Promise<{ id: string; subscriptionId: string; deviceType: string | null }[]> {
+    return this.prisma.deviceToken.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        subscriptionId: true,
+        deviceType: true,
+      },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+  }
 }
