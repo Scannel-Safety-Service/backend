@@ -83,7 +83,8 @@ ${html.substring(0, 300)}... (truncated)
   }
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const resetUrl = `http://localhost:3000/api/v1/auth/reset-password?token=${token}`;
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/auth/reset-password?token=${token}`;
     const text = `Please use the link below to reset your password. This link is valid for 30 minutes.\n\nURL: ${resetUrl}\nToken: ${token}`;
     const html = `
       <p>Hello,</p>
@@ -106,7 +107,8 @@ ${html.substring(0, 300)}... (truncated)
     email: string,
     token: string,
   ): Promise<void> {
-    const inviteUrl = `http://localhost:3000/api/v1/auth/accept-invitation?token=${token}`;
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const inviteUrl = `${frontendUrl}/auth/accept-invitation?token=${token}`;
     const text = `An account has been created for you. Click the link below to set your password and access your account.\n\nURL: ${inviteUrl}\nToken: ${token}`;
     const html = `
       <p>Hello,</p>
@@ -125,61 +127,47 @@ ${html.substring(0, 300)}... (truncated)
     });
   }
 
-  async sendIssueToClientEmail(user: any, company: any): Promise<void> {
-    const loginUrl = 'http://localhost:3000/login';
-    const companyName = company?.name || 'Safety Tracker Pro';
-    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Client';
-    
-    const subject = `Your Access Credentials for ${companyName} - Issued`;
-    const text = `Hello ${fullName},\n\nYour access credentials for ${companyName} have been issued.\n\nUser ID: ${user.userCode || user.id}\nEmail: ${user.email}\nRole: ${user.role}\n\nPlease access your portal at: ${loginUrl}`;
-    
+  async sendIssueToClientEmail(user: any, company: any, rawPassword?: string): Promise<void> {
+    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'User';
+    const usernameVal = user.email;
+    const passVal = rawPassword || user.tempPassword || '[As set on account setup]';
+    const androidUrl = 'https://play.google.com/store/apps/details?id=com.ess.emerald';
+    const iosUrl = 'https://itunes.apple.com/ie/app/emerald-health-safety/id1439793775';
+
+    const subject = `Your Account Credentials - Safety Tracker Pro`;
+    const text = `Hi ${userName}
+
+Your account has now been configured for the app and you can login with the following details:
+
+Username: ${usernameVal}
+Password: ${passVal}
+
+You can download the Android app from:
+${androidUrl}
+
+And you can download the iPhone app from:
+${iosUrl}
+
+Thanks,
+
+Safety Tracker Pro`;
+
     const html = `
-      <div style="text-align: center; margin-bottom: 24px;">
-        <div style="display: inline-block; width: 48px; height: 48px; border-radius: 50%; background-color: rgba(31, 108, 176, 0.1); line-height: 48px; text-align: center; margin-bottom: 12px;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#1f6cb0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; vertical-align: middle;">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-        </div>
-        <h2 style="margin: 0; color: #1e293b; font-size: 22px; font-weight: 700;">Account Credentials Issued</h2>
-        <p style="color: #64748b; margin: 4px 0 0 0;">Safety Compliance & Tracking Suite</p>
+      <p style="font-size: 16px; color: #1e293b;">Hi <strong>${userName}</strong>,</p>
+      <p style="font-size: 15px; color: #334155; line-height: 1.5;">Your account has now been configured for the app and you can login with the following details:</p>
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 20px 0; font-family: monospace; font-size: 14px;">
+        <p style="margin: 0 0 10px 0;"><strong>Username:</strong> <span style="color: #1f6cb0; font-weight: 600;">${usernameVal}</span></p>
+        <p style="margin: 0;"><strong>Password:</strong> <span style="color: #0f172a; font-weight: 600;">${passVal}</span></p>
       </div>
 
-      <p>Hello <strong>${fullName}</strong>,</p>
-      <p>Your administrator has issued the access credentials for your account associated with <strong>${companyName}</strong>. Below are the profile details configured for your login:</p>
+      <p style="margin-top: 24px; font-size: 15px; color: #334155;">You can download the <strong>Android app</strong> from:<br>
+      <a href="${androidUrl}" style="color: #1f6cb0; font-weight: 500; word-break: break-all;">${androidUrl}</a></p>
 
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-          <tr>
-            <td style="padding: 8px 0; color: #64748b; font-weight: 500; width: 120px;">Company</td>
-            <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${companyName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #64748b; font-weight: 500; border-top: 1px solid #f1f5f9;">User Code / ID</td>
-            <td style="padding: 8px 0; color: #0f172a; font-family: monospace; font-size: 13px; font-weight: 600; border-top: 1px solid #f1f5f9;">${user.userCode || user.id}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #64748b; font-weight: 500; border-top: 1px solid #f1f5f9;">Email Address</td>
-            <td style="padding: 8px 0; color: #0f172a; font-weight: 600; border-top: 1px solid #f1f5f9;">${user.email}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #64748b; font-weight: 500; border-top: 1px solid #f1f5f9;">System Role</td>
-            <td style="padding: 8px 0; color: #0f172a; border-top: 1px solid #f1f5f9;">
-              <span style="background-color: rgba(31, 108, 176, 0.1); color: #1f6cb0; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                ${user.role}
-              </span>
-            </td>
-          </tr>
-        </table>
-      </div>
+      <p style="margin-top: 16px; font-size: 15px; color: #334155;">And you can download the <strong>iPhone app</strong> from:<br>
+      <a href="${iosUrl}" style="color: #1f6cb0; font-weight: 500; word-break: break-all;">${iosUrl}</a></p>
 
-      <div style="text-align: center; margin: 32px 0;">
-        <a href="${loginUrl}" class="btn" style="color: #ffffff; padding: 12px 32px; font-size: 15px; border-radius: 8px; display: inline-block;">Access Safety Portal</a>
-      </div>
-
-      <div style="border-left: 3px solid #e2e8f0; padding-left: 16px; margin: 24px 0; color: #64748b; font-size: 13px; line-height: 1.5;">
-        <strong style="color: #475569; display: block; margin-bottom: 4px;">Security Notice:</strong>
-        Please keep your login credentials private. If you have not set up your password yet, please use the welcome/activation link previously sent to your email or contact your administrator to trigger a password reset.
-      </div>
+      <p style="margin-top: 32px; font-size: 15px; color: #334155;">Thanks,<br><strong style="color: #0f172a;">Safety Tracker Pro</strong></p>
     `;
 
     await this.sendMail({
@@ -264,7 +252,7 @@ ${html.substring(0, 300)}... (truncated)
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <h1>Global Safety Tracker</h1>
+        <h1>Safety Tracker Pro</h1>
       </div>
       <div class="content">
         ${bodyHtmlContent}
