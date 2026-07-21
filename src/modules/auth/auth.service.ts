@@ -142,8 +142,7 @@ export class AuthService {
       const userCreateInput: any = {
         email: dto.email,
         passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
+        name: dto.name,
         role: dto.role,
         userCode: formatUserCode(userCodeToUse),
         isActive,
@@ -394,8 +393,7 @@ export class AuthService {
       role: targetUser.role,
       aud: 'web' as const,      // Required: JWT access strategy validates audience: 'web'
       impersonatedBy: admin.id,
-      firstName: targetUser.firstName,
-      lastName: targetUser.lastName,
+      name: targetUser.name,
       userCode: targetUser.userCode,
       companyName: targetUser.company?.name || null,
     };
@@ -459,8 +457,7 @@ export class AuthService {
       role,
       aud: clientType,   // Channel audience — 'web' or 'mobile'
       impersonatedBy,
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
+      name: user?.name || '',
       userCode: user?.userCode || null,
       companyName: user?.company?.name || null,
     };
@@ -470,8 +467,7 @@ export class AuthService {
       companyId,
       role,
       aud: clientType,   // Channel audience — mirrors access token
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
+      name: user?.name || '',
       userCode: user?.userCode || null,
       companyName: user?.company?.name || null,
     };

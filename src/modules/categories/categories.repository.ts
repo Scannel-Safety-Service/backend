@@ -14,7 +14,7 @@ export class CategoriesRepository {
     where: Prisma.CategoryWhereInput,
     page: number = 1,
     limit: number = 10,
-  ): Promise<[(Category & { assignments: { userId: string; user: { firstName: string; lastName: string } | null }[] })[], number]> {
+  ): Promise<[(Category & { assignments: { userId: string; user: { name: string } | null }[] })[], number]> {
     const skip = (page - 1) * limit;
     const take = limit;
 
@@ -29,8 +29,7 @@ export class CategoriesRepository {
               userId: true,
               user: {
                 select: {
-                  firstName: true,
-                  lastName: true,
+                  name: true,
                 },
               },
             },
@@ -46,7 +45,7 @@ export class CategoriesRepository {
 
   async findById(
     id: string,
-  ): Promise<(Category & { assignments: { userId: string; user: { firstName: string; lastName: string } | null }[] }) | null> {
+  ): Promise<(Category & { assignments: { userId: string; user: { name: string } | null }[] }) | null> {
     return this.client.category.findUnique({
       where: { id },
       include: {
@@ -55,8 +54,7 @@ export class CategoriesRepository {
             userId: true,
             user: {
               select: {
-                firstName: true,
-                lastName: true,
+                name: true,
               },
             },
           },

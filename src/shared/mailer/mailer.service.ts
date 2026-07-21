@@ -128,7 +128,7 @@ ${html.substring(0, 300)}... (truncated)
   }
 
   async sendIssueToClientEmail(user: any, company: any, rawPassword?: string): Promise<void> {
-    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'User';
+    const userName = user.name || 'User';
     const usernameVal = user.email;
     const passVal = rawPassword || user.tempPassword || '[As set on account setup]';
     const androidUrl = 'https://play.google.com/store/apps/details?id=com.ess.emerald';

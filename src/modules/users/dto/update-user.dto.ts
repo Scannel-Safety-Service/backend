@@ -3,20 +3,12 @@ import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
-    example: 'John',
-    description: 'The first name of the user',
+    example: 'John Doe',
+    description: 'The name of the user',
   })
   @IsString()
   @IsOptional()
-  firstName?: string;
-
-  @ApiPropertyOptional({
-    example: 'Doe',
-    description: 'The last name of the user',
-  })
-  @IsString()
-  @IsOptional()
-  lastName?: string;
+  name?: string;
 
   @ApiPropertyOptional({ example: 'user@example.com', description: 'The email of the user' })
   @IsEmail()

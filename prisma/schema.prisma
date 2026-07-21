@@ -34,8 +34,7 @@ model User {
   email        String    @unique
   userCode     String?   @unique
   passwordHash String
-  firstName    String
-  lastName     String
+  name         String
   role         Role
   isActive     Boolean   @default(true)
   archivedAt   DateTime?

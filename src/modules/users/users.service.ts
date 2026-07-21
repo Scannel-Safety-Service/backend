@@ -25,10 +25,7 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {};
 
     if (queryDto.name) {
-      where.OR = [
-        { firstName: { contains: queryDto.name, mode: 'insensitive' } },
-        { lastName: { contains: queryDto.name, mode: 'insensitive' } },
-      ];
+      where.name = { contains: queryDto.name, mode: 'insensitive' };
     }
 
     if (queryDto.email) {
@@ -97,8 +94,7 @@ export class UsersService {
     }
 
     const updateData: Prisma.UserUpdateInput = {};
-    if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
-    if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.name !== undefined) updateData.name = dto.name;
     if (user.role === Role.COMPANY_ADMIN) {
       updateData.userCode = null;
     } else if (dto.userCode !== undefined) {
