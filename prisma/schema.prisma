@@ -54,6 +54,7 @@ model User {
   documents              Document[]
   individuals            Individual[]
   reminders              Reminder[]
+  deviceTokens           DeviceToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -238,7 +239,6 @@ model Reminder {
   individualId String?
   individual   Individual? @relation(fields: [individualId], references: [id])
   title        String
-  description  String?
   dueDate      DateTime
   reminderDate DateTime?
   completedAt  DateTime?
@@ -247,9 +247,65 @@ model Reminder {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  notifications ReminderNotification[]
+
   @@index([companyId])
   @@index([userId])
   @@index([individualId])
+}
+
+// ---------------------------------------------------------------------------
+// Push Notification Tracking
+// ---------------------------------------------------------------------------
+
+enum ReminderNotificationStatus {
+  PENDING     // Scheduled — not yet dispatched
+  PROCESSING  // Currently being dispatched (prevents double-send on concurrent ticks)
+  SENT        // Successfully delivered to OneSignal
+  FAILED      // Permanently failed after maxRetries attempts
+  CANCELLED   // Reminder was completed/archived before dispatch
+}
+
+/// Tracks every push-notification dispatch attempt for a Reminder.
+/// One record per scheduled notification event. Created automatically
+/// when a Reminder is created. Retry logic updates this record in-place.
+model ReminderNotification {
+  id            String                     @id @default(uuid())
+  reminderId    String
+  reminder      Reminder                   @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  status        ReminderNotificationStatus @default(PENDING)
+  scheduledAt   DateTime                   // When this notification should fire (reminderDate ?? dueDate)
+  sentAt        DateTime?                  // Timestamp of successful OneSignal delivery
+  lastAttemptAt DateTime?                  // Timestamp of most recent attempt (success or failure)
+  nextRetryAt   DateTime?                  // Earliest time the next retry may be attempted
+  retryCount    Int                        @default(0)
+  maxRetries    Int                        @default(6)
+  errorMessage  String?                    // Last error message — for diagnostics
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reminderId])
+  // Composite index used by the scheduler query (status + scheduledAt)
+  @@index([status, scheduledAt])
+  @@index([status, nextRetryAt])
+}
+
+/// Stores OneSignal push subscription IDs per user.
+/// One user can have multiple device tokens (multi-device support).
+model DeviceToken {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String   @unique  // OneSignal push subscription ID (formerly playerId)
+  deviceType     String?           // 'ios' | 'android'
+  lastSeenAt     DateTime @default(now()) // Updated on every token registration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 enum AssetCategory {

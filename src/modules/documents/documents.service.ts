@@ -125,6 +125,36 @@ export class DocumentsService {
 
     const title = dto.title || file.originalname;
 
+    if (dto.section === DocumentSection.TRAINING_QUALIFICATIONS) {
+      if (!targetUserId) {
+        throw new BadRequestException('User ID is required for Training Qualifications');
+      }
+
+      const individuals = await this.prismaService.client.individual.findMany({
+        where: {
+          userId: targetUserId,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (individuals.length === 0) {
+        throw new BadRequestException(
+          'Cannot upload documents under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
+        );
+      }
+
+      const matchesAnyIndividual = individuals.some((ind) =>
+        title.endsWith(` - ${ind.name}`),
+      );
+
+      if (!matchesAnyIndividual) {
+        throw new BadRequestException(
+          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
+        );
+      }
+    }
+
     const existingDocument = await this.prismaService.client.document.findFirst({
       where: {
         companyId,
@@ -509,6 +539,42 @@ export class DocumentsService {
       }
     }
 
+    if (targetSection === DocumentSection.TRAINING_QUALIFICATIONS) {
+      const targetUserId = dto.userId !== undefined ? dto.userId : document.userId;
+      if (!targetUserId) {
+        throw new BadRequestException('User ID is required for Training Qualifications');
+      }
+
+      const individuals = await this.prismaService.client.individual.findMany({
+        where: {
+          userId: targetUserId,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (individuals.length === 0) {
+        throw new BadRequestException(
+          'Cannot save document under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
+        );
+      }
+
+      const finalTitle = dto.title !== undefined ? dto.title : document.title;
+      if (!finalTitle) {
+        throw new BadRequestException('Document title is required.');
+      }
+
+      const matchesAnyIndividual = individuals.some((ind) =>
+        finalTitle.endsWith(` - ${ind.name}`),
+      );
+
+      if (!matchesAnyIndividual) {
+        throw new BadRequestException(
+          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
+        );
+      }
+    }
+
     if (dto.title !== undefined && dto.title !== null) {
       const existingDocument = await this.prismaService.client.document.findFirst({
         where: {
@@ -675,8 +741,56 @@ export class DocumentsService {
       }
     }
 
-    // Validate category exists in the company/section if categoryId provided
-    if (dto.categoryId) {
+    const targetSection = dto.section || 'SAFETY_STATEMENT';
+
+    // Validate category exists in the company/section if categoryId provided, or enforce business rules for sections
+    if (
+      targetSection === DocumentSection.COMPANY_DOCUMENTS ||
+      targetSection === DocumentSection.RISK_ASSESSMENT
+    ) {
+      const categoryCount = await this.prismaService.client.category.count({
+        where: {
+          section: targetSection,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (categoryCount === 0) {
+        throw new BadRequestException(
+          `Cannot assign documents under ${
+            targetSection === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } because no active categories are defined. Please create a category first.`,
+        );
+      }
+
+      if (!dto.categoryId) {
+        throw new BadRequestException(
+          `Category is required for ${
+            targetSection === DocumentSection.COMPANY_DOCUMENTS
+              ? 'Company Documents'
+              : 'Risk Assessment'
+          } documents.`,
+        );
+      }
+
+      const category = await this.prismaService.client.category.findFirst({
+        where: {
+          id: dto.categoryId,
+          section: targetSection,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (!category) {
+        throw new BadRequestException(
+          'The selected category is invalid or does not belong to this company and section.',
+        );
+      }
+    } else if (dto.categoryId) {
       const category = await this.prismaService.client.category.findUnique({ where: { id: dto.categoryId } });
       if (!category) {
         throw new NotFoundException('Category not found');
@@ -684,6 +798,37 @@ export class DocumentsService {
     }
 
     const title = dto.title || rawStdDoc.title;
+
+    if (targetSection === DocumentSection.TRAINING_QUALIFICATIONS) {
+      const targetUserId = dto.userId;
+      if (!targetUserId) {
+        throw new BadRequestException('User ID is required for Training Qualifications');
+      }
+
+      const individuals = await this.prismaService.client.individual.findMany({
+        where: {
+          userId: targetUserId,
+          isDeleted: false,
+          archivedAt: null,
+        },
+      });
+
+      if (individuals.length === 0) {
+        throw new BadRequestException(
+          'Cannot assign documents under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
+        );
+      }
+
+      const matchesAnyIndividual = individuals.some((ind) =>
+        title.endsWith(` - ${ind.name}`),
+      );
+
+      if (!matchesAnyIndividual) {
+        throw new BadRequestException(
+          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
+        );
+      }
+    }
 
     const existingDocument = await this.prismaService.client.document.findFirst({
       where: {

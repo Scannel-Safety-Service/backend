@@ -27,13 +27,16 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { MailerModule } from './shared/mailer/mailer.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { OneSignalModule } from './shared/onesignal/onesignal.module';
+import { SchedulerModule } from './shared/scheduler/scheduler.module';
+import onesignalConfig from './config/onesignal.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [jwtConfig, mailConfig],
+      load: [jwtConfig, mailConfig, onesignalConfig],
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -55,6 +58,8 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     MailerModule,
+    OneSignalModule,
+    SchedulerModule,
     AuthModule,
     CompaniesModule,
     UsersModule,

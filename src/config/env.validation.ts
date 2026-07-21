@@ -80,6 +80,15 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   SMTP_FROM?: string;
+
+  // OneSignal Push Notifications
+  @IsString()
+  @IsNotEmpty()
+  ONESIGNAL_APP_ID!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  ONESIGNAL_REST_API_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, any>) {

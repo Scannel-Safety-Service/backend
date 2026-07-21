@@ -35,13 +35,6 @@ export class CreateReminderDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiPropertyOptional({
-    description: 'Optional detailed description of the reminder',
-  })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
   @ApiProperty({ description: 'The due date for the reminder alert' })
   @IsDateString()
   dueDate: string;
