@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Role } from '../../common/enums/role.enum';
 import { hashToken } from '../../shared/utils/hash.util';
+import { encryptPassword, decryptPassword } from '../../shared/utils/crypto.util';
 import { formatUserCode } from '../../shared/utils/user-code.util';
 import { MailerService } from '../../shared/mailer/mailer.service';
 import { AuthRepository } from './auth.repository';
@@ -88,10 +89,10 @@ export class AuthService {
     let isActive = true;
 
     if (dto.password) {
-      passwordHash = await bcrypt.hash(dto.password, 12);
+      passwordHash = encryptPassword(dto.password);
     } else {
       const randomPassword = randomBytes(32).toString('hex');
-      passwordHash = await bcrypt.hash(randomPassword, 12);
+      passwordHash = encryptPassword(randomPassword);
       isActive = false;
     }
 
@@ -189,10 +190,16 @@ export class AuthService {
       }
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      dto.password,
-      user.passwordHash,
-    );
+    let isPasswordValid = false;
+    const decryptedPassword = decryptPassword(user.passwordHash);
+    if (decryptedPassword !== null) {
+      isPasswordValid = (decryptedPassword === dto.password);
+    } else {
+      isPasswordValid = await bcrypt.compare(
+        dto.password,
+        user.passwordHash,
+      );
+    }
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -322,7 +329,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired password reset token');
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    const passwordHash = encryptPassword(dto.newPassword);
     await this.authRepository.updateUserPassword(
       resetToken.userId,
       passwordHash,
@@ -359,7 +366,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired invitation token');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = encryptPassword(dto.password);
 
     await Promise.all([
       this.authRepository.updateUser(inviteToken.userId, {

@@ -7,6 +7,7 @@ import {
 import { Prisma, User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { formatUserCode } from '../../shared/utils/user-code.util';
+import { encryptPassword, decryptPassword } from '../../shared/utils/crypto.util';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UsersRepository } from './users.repository';
@@ -128,7 +129,7 @@ export class UsersService {
     }
 
     if (dto.password !== undefined && dto.password !== '') {
-      updateData.passwordHash = await bcrypt.hash(dto.password, 12);
+      updateData.passwordHash = encryptPassword(dto.password);
     }
 
     try {
@@ -221,6 +222,7 @@ export class UsersService {
       throw new BadRequestException('Cannot send credentials to an archived user');
     }
 
-    await this.mailerService.sendIssueToClientEmail(user, user.company);
+    const decryptedPassword = decryptPassword(user.passwordHash);
+    await this.mailerService.sendIssueToClientEmail(user, user.company, decryptedPassword || undefined);
   }
 }

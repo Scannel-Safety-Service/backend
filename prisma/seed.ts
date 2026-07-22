@@ -3,13 +3,14 @@ import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { encryptPassword } from '../src/shared/utils/crypto.util';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg(new Pool({ connectionString: process.env.DATABASE_URL })),
 });
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 12);
+  const passwordHash = encryptPassword('password123');
 
   console.log('Seed: Cleaning database...');
   await prisma.impersonationLog.deleteMany({});

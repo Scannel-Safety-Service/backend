@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Company } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { encryptPassword } from '../../shared/utils/crypto.util';
 import { CompaniesRepository } from './companies.repository';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -125,7 +126,7 @@ export class CompaniesService {
       }
 
       if (dto.password !== undefined && dto.password !== '') {
-        adminUserData.passwordHash = await bcrypt.hash(dto.password, 12);
+        adminUserData.passwordHash = encryptPassword(dto.password);
       }
     }
 
