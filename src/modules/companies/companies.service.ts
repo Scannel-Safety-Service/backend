@@ -24,22 +24,36 @@ export class CompaniesService {
     const [companies, total] = await this.companiesRepository.findAndCount(
       page,
       limit,
+      queryDto.archived,
     );
 
     const items = companies.map((company) => {
-      // Find an active COMPANY_ADMIN user
-      let targetUser = company.users.find(
-        (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
-      );
-      // Fallback to any active user
-      if (!targetUser) {
-        targetUser = company.users.find(
+      const validUsers = (company.users || []).filter((u: any) => !u.isDeleted);
+      let targetUser =
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
+        ) ||
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN' && u.archivedAt === null,
+        ) ||
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive,
+        ) ||
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN',
+        ) ||
+        validUsers.find(
           (u: any) => u.isActive && u.archivedAt === null,
-        );
-      }
+        ) ||
+        validUsers.find(
+          (u: any) => u.isActive,
+        ) ||
+        validUsers[0];
+
       return {
         id: company.id,
         name: company.name,
+        archivedAt: company.archivedAt,
         createdAt: company.createdAt,
         adminUserId: targetUser ? targetUser.id : null,
         adminEmail: targetUser ? targetUser.email : null,
@@ -76,17 +90,27 @@ export class CompaniesService {
     let adminUserData: any | undefined;
 
     if (dto.email !== undefined || (dto.password !== undefined && dto.password !== '')) {
-      let adminUser = company.users.find(
-        (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
-      );
-      if (!adminUser) {
-        adminUser = company.users.find(
+      const validUsers = (company.users || []).filter((u: any) => !u.isDeleted);
+      let adminUser =
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive && u.archivedAt === null,
+        ) ||
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN' && u.isActive,
+        ) ||
+        validUsers.find(
+          (u: any) => u.role === 'COMPANY_ADMIN',
+        ) ||
+        validUsers.find(
           (u: any) => u.isActive && u.archivedAt === null,
-        );
-      }
+        ) ||
+        validUsers.find(
+          (u: any) => u.isActive,
+        ) ||
+        validUsers[0];
 
       if (!adminUser) {
-        throw new BadRequestException('No active administrator found for this company to update.');
+        throw new BadRequestException('No administrator found for this company to update.');
       }
 
       adminUserId = adminUser.id;
@@ -115,8 +139,27 @@ export class CompaniesService {
     );
   }
 
+  async archive(id: string): Promise<Company> {
+    const company = await this.findOne(id);
+    if (company.archivedAt !== null) {
+      throw new BadRequestException('Company is already archived');
+    }
+    return this.companiesRepository.archiveCompany(id);
+  }
+
+  async restore(id: string): Promise<Company> {
+    const company = await this.findOne(id);
+    if (company.archivedAt === null) {
+      throw new BadRequestException('Company is not archived');
+    }
+    return this.companiesRepository.restoreCompany(id);
+  }
+
   async delete(id: string): Promise<void> {
-    await this.findOne(id);
+    const company = await this.findOne(id);
+    if (company.archivedAt === null) {
+      throw new BadRequestException('Company must be archived before it can be deleted');
+    }
     await this.companiesRepository.deleteCompany(id);
   }
 }

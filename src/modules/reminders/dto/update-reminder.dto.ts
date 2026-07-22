@@ -9,14 +9,6 @@ export class UpdateReminderDto {
   @IsOptional()
   userId?: string | null;
 
-  @ApiPropertyOptional({
-    description:
-      'Optional individual ID if reminder belongs to a dependent/sub-record',
-  })
-  @IsUUID()
-  @IsOptional()
-  individualId?: string | null;
-
   @ApiPropertyOptional({ description: 'The title/name of the reminder' })
   @IsString()
   @IsOptional()

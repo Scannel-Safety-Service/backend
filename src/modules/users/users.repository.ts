@@ -33,6 +33,7 @@ export class UsersRepository {
         select: {
           id: true,
           name: true,
+          archivedAt: true,
         },
       },
     };

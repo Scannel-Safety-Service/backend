@@ -23,9 +23,6 @@ export class RemindersService {
     if (dto.userId) {
       await this.verifyUserBelongsToTenant(dto.userId);
     }
-    if (dto.individualId) {
-      await this.verifyIndividualBelongsToTenant(dto.individualId);
-    }
 
     const data: Prisma.ReminderCreateInput = {
       title: dto.title,
@@ -36,9 +33,6 @@ export class RemindersService {
 
     if (dto.userId) {
       data.user = { connect: { id: dto.userId } };
-    }
-    if (dto.individualId) {
-      data.individual = { connect: { id: dto.individualId } };
     }
 
     const reminder = await this.repository.create(data);
@@ -55,10 +49,6 @@ export class RemindersService {
 
     if (queryDto.userId) {
       where.userId = queryDto.userId;
-    }
-
-    if (queryDto.individualId) {
-      where.individualId = queryDto.individualId;
     }
 
     if (queryDto.completed === 'true') {
@@ -113,9 +103,6 @@ export class RemindersService {
     if (dto.userId) {
       await this.verifyUserBelongsToTenant(dto.userId);
     }
-    if (dto.individualId) {
-      await this.verifyIndividualBelongsToTenant(dto.individualId);
-    }
 
     const updateData: Prisma.ReminderUpdateInput = {};
     if (dto.title !== undefined) updateData.title = dto.title;
@@ -129,14 +116,6 @@ export class RemindersService {
         updateData.user = { disconnect: true };
       } else {
         updateData.user = { connect: { id: dto.userId } };
-      }
-    }
-
-    if (dto.individualId !== undefined) {
-      if (dto.individualId === null) {
-        updateData.individual = { disconnect: true };
-      } else {
-        updateData.individual = { connect: { id: dto.individualId } };
       }
     }
 
@@ -302,17 +281,6 @@ export class RemindersService {
     });
     if (!user) {
       throw new NotFoundException('Scoped user not found');
-    }
-  }
-
-  private async verifyIndividualBelongsToTenant(
-    individualId: string,
-  ): Promise<void> {
-    const individual = await this.prismaService.client.individual.findUnique({
-      where: { id: individualId },
-    });
-    if (!individual) {
-      throw new NotFoundException('Scoped individual not found');
     }
   }
 }

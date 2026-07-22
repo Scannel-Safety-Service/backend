@@ -37,9 +37,20 @@ export class UsersService {
     }
 
     if (queryDto.archived === 'true') {
-      where.archivedAt = { not: null };
+      where.OR = [
+        { archivedAt: { not: null } },
+        { company: { archivedAt: { not: null } } },
+      ];
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
+      where.AND = [
+        {
+          OR: [
+            { companyId: null },
+            { company: { archivedAt: null } },
+          ],
+        },
+      ];
     }
     // Permanently soft-deleted records are NEVER visible via API
     where.isDeleted = false;
@@ -148,7 +159,20 @@ export class UsersService {
   }
 
   async restore(id: string): Promise<Omit<User, 'passwordHash'>> {
-    const user = await this.findOne(id);
+    const user = await this.usersRepository.findByIdWithCompany(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.isDeleted) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.company && user.company.archivedAt !== null) {
+      throw new BadRequestException(
+        'Cannot restore user while their company is archived. Please restore the company first.',
+      );
+    }
+
     if (user.archivedAt === null) {
       throw new BadRequestException('User is not archived');
     }

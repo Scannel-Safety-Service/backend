@@ -31,4 +31,9 @@ export class AssignStandardDocumentDto {
   @IsUUID()
   @IsOptional()
   companyId?: string;
+
+  @ApiPropertyOptional({ description: 'Individual ID to assign the document to (optional)' })
+  @IsUUID()
+  @IsOptional()
+  individualId?: string;
 }

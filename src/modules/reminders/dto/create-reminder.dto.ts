@@ -22,14 +22,6 @@ export class CreateReminderDto {
   @IsOptional()
   companyId?: string;
 
-  @ApiPropertyOptional({
-    description:
-      'Optional individual ID if reminder belongs to a dependent/sub-record',
-  })
-  @IsUUID()
-  @IsOptional()
-  individualId?: string;
-
   @ApiProperty({ description: 'The title/name of the reminder' })
   @IsString()
   @IsNotEmpty()

@@ -9,6 +9,7 @@ export type EnrichedDocument = Document & {
   folder: { id: string; name: string } | null;
   user: { id: string; name: string } | null;
   category: { id: string; name: string } | null;
+  individual: { id: string; name: string } | null;
 };
 
 // Prisma include shape reused for all enriched queries
@@ -23,6 +24,9 @@ const DOCUMENT_INCLUDE = {
     select: { id: true, name: true },
   },
   category: {
+    select: { id: true, name: true },
+  },
+  individual: {
     select: { id: true, name: true },
   },
 } satisfies Prisma.DocumentInclude;
@@ -87,6 +91,10 @@ export class DocumentsRepository {
           fileUrl: true,
           section: true,
           createdAt: true,
+          individualId: true,
+          individual: {
+            select: { id: true, name: true },
+          },
           user: {
             select: { id: true, name: true },
           },

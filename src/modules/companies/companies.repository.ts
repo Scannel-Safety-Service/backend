@@ -19,6 +19,7 @@ export class CompaniesRepository {
             id: true,
             role: true,
             isActive: true,
+            isDeleted: true,
             archivedAt: true,
             email: true,
           },
@@ -30,10 +31,17 @@ export class CompaniesRepository {
   async findAndCount(
     page: number = 1,
     limit: number = 10,
+    archived?: string,
   ): Promise<[any[], number]> {
     const skip = (page - 1) * limit;
     const take = limit;
     const where: Prisma.CompanyWhereInput = { isDeleted: false };
+
+    if (archived === 'true') {
+      where.archivedAt = { not: null };
+    } else if (archived === 'false' || !archived) {
+      where.archivedAt = null;
+    }
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.company.findMany({
@@ -68,6 +76,7 @@ export class CompaniesRepository {
             id: true,
             role: true,
             isActive: true,
+            isDeleted: true,
             archivedAt: true,
             email: true,
           },
@@ -134,6 +143,64 @@ export class CompaniesRepository {
           revokedAt: new Date(),
         },
       });
+    });
+  }
+
+  async archiveCompany(id: string): Promise<Company> {
+    return this.prisma.$transaction(async (tx) => {
+      const company = await tx.company.update({
+        where: { id },
+        data: { archivedAt: new Date() },
+      });
+
+      // Soft archive all non-deleted users belonging to this company
+      await tx.user.updateMany({
+        where: {
+          companyId: id,
+          archivedAt: null,
+          isDeleted: false,
+        },
+        data: {
+          archivedAt: new Date(),
+        },
+      });
+
+      // Revoke all active refresh tokens for users in this company
+      await tx.refreshToken.updateMany({
+        where: {
+          user: {
+            companyId: id,
+          },
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+
+      return company;
+    });
+  }
+
+  async restoreCompany(id: string): Promise<Company> {
+    return this.prisma.$transaction(async (tx) => {
+      const company = await tx.company.update({
+        where: { id },
+        data: { archivedAt: null },
+      });
+
+      // Restore users belonging to this company
+      await tx.user.updateMany({
+        where: {
+          companyId: id,
+          isDeleted: false,
+        },
+        data: {
+          archivedAt: null,
+        },
+      });
+
+      return company;
     });
   }
 }

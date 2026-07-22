@@ -76,6 +76,36 @@ export class CompaniesController {
     };
   }
 
+  @Patch(':id/archive')
+  @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'companies' })
+  @ApiOperation({
+    summary: 'Archive a company (Super Admin only)',
+  })
+  async archive(@Param('id') id: string) {
+    const company = await this.companiesService.archive(id);
+    return {
+      message: 'Company archived successfully',
+      data: company,
+    };
+  }
+
+  @Patch(':id/restore')
+  @Roles(Role.SUPER_ADMIN)
+  @UseInterceptors(CacheEvictInterceptor)
+  @CacheEvict({ key: 'companies' })
+  @ApiOperation({
+    summary: 'Restore an archived company (Super Admin only)',
+  })
+  async restore(@Param('id') id: string) {
+    const company = await this.companiesService.restore(id);
+    return {
+      message: 'Company restored successfully',
+      data: company,
+    };
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN)

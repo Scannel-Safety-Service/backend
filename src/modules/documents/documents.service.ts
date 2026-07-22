@@ -126,32 +126,26 @@ export class DocumentsService {
     const title = dto.title || file.originalname;
 
     if (dto.section === DocumentSection.TRAINING_QUALIFICATIONS) {
+      const targetUserId = dto.userId || (caller.role !== 'SUPER_ADMIN' ? caller.userId : null);
       if (!targetUserId) {
         throw new BadRequestException('User ID is required for Training Qualifications');
       }
 
-      const individuals = await this.prismaService.client.individual.findMany({
+      if (!dto.individualId) {
+        throw new BadRequestException('An individual must be selected for Training Qualifications documents.');
+      }
+
+      const individual = await this.prismaService.client.individual.findFirst({
         where: {
+          id: dto.individualId,
           userId: targetUserId,
           isDeleted: false,
           archivedAt: null,
         },
       });
 
-      if (individuals.length === 0) {
-        throw new BadRequestException(
-          'Cannot upload documents under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
-        );
-      }
-
-      const matchesAnyIndividual = individuals.some((ind) =>
-        title.endsWith(` - ${ind.name}`),
-      );
-
-      if (!matchesAnyIndividual) {
-        throw new BadRequestException(
-          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
-        );
+      if (!individual) {
+        throw new BadRequestException('The selected individual was not found or is inactive.');
       }
     }
 
@@ -184,6 +178,10 @@ export class DocumentsService {
 
     if (dto.categoryId) {
       data.category = { connect: { id: dto.categoryId } };
+    }
+
+    if (dto.individualId) {
+      data.individual = { connect: { id: dto.individualId } };
     }
 
     if (targetUserId) {
@@ -541,37 +539,26 @@ export class DocumentsService {
 
     if (targetSection === DocumentSection.TRAINING_QUALIFICATIONS) {
       const targetUserId = dto.userId !== undefined ? dto.userId : document.userId;
+      const targetIndividualId = dto.individualId !== undefined ? dto.individualId : document.individualId;
       if (!targetUserId) {
         throw new BadRequestException('User ID is required for Training Qualifications');
       }
 
-      const individuals = await this.prismaService.client.individual.findMany({
+      if (!targetIndividualId) {
+        throw new BadRequestException('An individual must be selected for Training Qualifications documents.');
+      }
+
+      const individual = await this.prismaService.client.individual.findFirst({
         where: {
+          id: targetIndividualId,
           userId: targetUserId,
           isDeleted: false,
           archivedAt: null,
         },
       });
 
-      if (individuals.length === 0) {
-        throw new BadRequestException(
-          'Cannot save document under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
-        );
-      }
-
-      const finalTitle = dto.title !== undefined ? dto.title : document.title;
-      if (!finalTitle) {
-        throw new BadRequestException('Document title is required.');
-      }
-
-      const matchesAnyIndividual = individuals.some((ind) =>
-        finalTitle.endsWith(` - ${ind.name}`),
-      );
-
-      if (!matchesAnyIndividual) {
-        throw new BadRequestException(
-          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
-        );
+      if (!individual) {
+        throw new BadRequestException('The selected individual was not found or is inactive.');
       }
     }
 
@@ -609,6 +596,14 @@ export class DocumentsService {
         updateData.category = { disconnect: true };
       } else {
         updateData.category = { connect: { id: dto.categoryId } };
+      }
+    }
+
+    if (dto.individualId !== undefined) {
+      if (dto.individualId === null) {
+        updateData.individual = { disconnect: true };
+      } else {
+        updateData.individual = { connect: { id: dto.individualId } };
       }
     }
 
@@ -805,28 +800,21 @@ export class DocumentsService {
         throw new BadRequestException('User ID is required for Training Qualifications');
       }
 
-      const individuals = await this.prismaService.client.individual.findMany({
+      if (!dto.individualId) {
+        throw new BadRequestException('An individual must be selected for Training Qualifications documents.');
+      }
+
+      const individual = await this.prismaService.client.individual.findFirst({
         where: {
+          id: dto.individualId,
           userId: targetUserId,
           isDeleted: false,
           archivedAt: null,
         },
       });
 
-      if (individuals.length === 0) {
-        throw new BadRequestException(
-          'Cannot assign documents under Training Qualifications because no active individuals are defined for this user. Please create an individual first.',
-        );
-      }
-
-      const matchesAnyIndividual = individuals.some((ind) =>
-        title.endsWith(` - ${ind.name}`),
-      );
-
-      if (!matchesAnyIndividual) {
-        throw new BadRequestException(
-          'Document title for Training Qualifications must end with the name of an active individual (e.g., "Document Title - Individual Name").',
-        );
+      if (!individual) {
+        throw new BadRequestException('The selected individual was not found or is inactive.');
       }
     }
 
@@ -854,6 +842,7 @@ export class DocumentsService {
       company: { connect: { id: companyId } },
       ...(dto.userId ? { user: { connect: { id: dto.userId } } } : {}),
       ...(dto.categoryId ? { category: { connect: { id: dto.categoryId } } } : {}),
+      ...(dto.individualId ? { individual: { connect: { id: dto.individualId } } } : {}),
     };
 
     return this.documentsRepository.create(data);

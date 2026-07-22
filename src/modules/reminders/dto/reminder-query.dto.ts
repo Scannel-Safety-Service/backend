@@ -8,11 +8,6 @@ export class ReminderQueryDto {
   @IsOptional()
   userId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by individual ID' })
-  @IsUUID()
-  @IsOptional()
-  individualId?: string;
-
   @ApiPropertyOptional({
     description:
       'Filter by completion status (true: completed, false: pending, all: both). Defaults to all.',

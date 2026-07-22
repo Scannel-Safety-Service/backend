@@ -178,8 +178,15 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
-    if (user.company && user.company.isDeleted) {
-      throw new UnauthorizedException('Company has been deleted');
+    if (user.company) {
+      if (user.company.isDeleted) {
+        throw new UnauthorizedException('Company has been deleted');
+      }
+      if (user.company.archivedAt !== null) {
+        throw new UnauthorizedException(
+          'Company is archived and paused. Please contact Super Admin.',
+        );
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -252,8 +259,15 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
-    if (user.company && user.company.isDeleted) {
-      throw new UnauthorizedException('Company has been deleted');
+    if (user.company) {
+      if (user.company.isDeleted) {
+        throw new UnauthorizedException('Company has been deleted');
+      }
+      if (user.company.archivedAt !== null) {
+        throw new UnauthorizedException(
+          'Company is archived and paused. Please contact Super Admin.',
+        );
+      }
     }
 
     await this.authRepository.revokeRefreshToken(hashed);
@@ -375,10 +389,17 @@ export class AuthService {
       );
     }
 
-    if (targetUser.company && targetUser.company.isDeleted) {
-      throw new BadRequestException(
-        'Cannot impersonate user of a deleted company',
-      );
+    if (targetUser.company) {
+      if (targetUser.company.isDeleted) {
+        throw new BadRequestException(
+          'Cannot impersonate user of a deleted company',
+        );
+      }
+      if (targetUser.company.archivedAt !== null) {
+        throw new BadRequestException(
+          'Cannot impersonate user of an archived company',
+        );
+      }
     }
 
     const admin = await this.authRepository.findUserById(adminId);
