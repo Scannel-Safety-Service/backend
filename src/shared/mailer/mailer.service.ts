@@ -105,25 +105,31 @@ ${html.substring(0, 300)}... (truncated)
 
   async sendWelcomeInvitationEmail(
     email: string,
-    token: string,
+    userName?: string,
   ): Promise<void> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const inviteUrl = `${frontendUrl}/auth/accept-invitation?token=${token}`;
-    const text = `An account has been created for you. Click the link below to set your password and access your account.\n\nURL: ${inviteUrl}\nToken: ${token}`;
+    const name = userName || 'User';
+    const subject = 'Welcome to Safety Tracker Pro!';
+    const text = `Hi ${name},
+
+Welcome to Safety Tracker Pro! We are excited to have you on board.
+
+Your account is now active. If you have any questions or need assistance, please feel free to reach out to your administrator.
+
+Thanks,
+Safety Tracker Pro`;
+
     const html = `
-      <p>Hello,</p>
-      <p>An account has been created for you. Click the link below to set your password and access your account.</p>
-      <p style="margin: 24px 0;">
-        <a href="${inviteUrl}" class="btn" style="color: #ffffff;">Accept Invitation</a>
-      </p>
-      <p style="font-size: 14px; color: #64748b;">If the button doesn't work, copy and paste this URL into your browser:</p>
-      <code style="display: block; padding: 12px; background-color: #f1f5f9; border-radius: 6px; word-break: break-all;">${inviteUrl}</code>
+      <p style="font-size: 16px; color: #1e293b;">Hi <strong>${name}</strong>,</p>
+      <p style="font-size: 15px; color: #334155; line-height: 1.6;">Welcome to <strong>Safety Tracker Pro</strong>! We are excited to have you on board.</p>
+      <p style="font-size: 15px; color: #334155; line-height: 1.6;">Your account is now active. If you have any questions or need assistance, please feel free to reach out to your administrator.</p>
+      <p style="margin-top: 32px; font-size: 15px; color: #334155;">Thanks,<br><strong style="color: #0f172a;">Safety Tracker Pro</strong></p>
     `;
+
     await this.sendMail({
       to: email,
-      subject: 'Welcome to Scannel Safety Service!',
+      subject,
       text,
-      html: this.generateDefaultHtmlTemplate('Welcome Invitation', html),
+      html: this.generateDefaultHtmlTemplate(subject, html),
     });
   }
 
@@ -163,7 +169,6 @@ Safety Tracker Pro`;
 
       <p style="margin-top: 24px; font-size: 15px; color: #334155;">You can download the <strong>Android app</strong> from:<br>
       <a href="${androidUrl}" style="color: #1f6cb0; font-weight: 500; word-break: break-all;">${androidUrl}</a></p>
-
       <p style="margin-top: 16px; font-size: 15px; color: #334155;">And you can download the <strong>iPhone app</strong> from:<br>
       <a href="${iosUrl}" style="color: #1f6cb0; font-weight: 500; word-break: break-all;">${iosUrl}</a></p>
 
@@ -179,6 +184,9 @@ Safety Tracker Pro`;
   }
 
   private generateDefaultHtmlTemplate(title: string, bodyHtmlContent: string): string {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const cleanFrontendUrl = frontendUrl.replace(/\/$/, '');
+
     return `
 <!DOCTYPE html>
 <html>
@@ -213,13 +221,21 @@ Safety Tracker Pro`;
       background: linear-gradient(135deg, #1f6cb0 0%, #1a365d 100%);
       padding: 32px;
       text-align: center;
-      color: #ffffff;
     }
     .header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+    .header p {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
     }
     .content {
       padding: 32px;
@@ -258,8 +274,8 @@ Safety Tracker Pro`;
         ${bodyHtmlContent}
       </div>
       <div class="footer">
-        <p>This is an automated security notification from Scannel Safety Tracker.</p>
-        <p>&copy; ${new Date().getFullYear()} Scannel. All rights reserved.</p>
+        <p>This is an automated notification from Safety Tracker Pro.</p>
+        <p>&copy; ${new Date().getFullYear()} Scannel Safety Tracker. All rights reserved.</p>
       </div>
     </div>
   </div>
@@ -267,4 +283,6 @@ Safety Tracker Pro`;
 </html>
     `;
   }
+
 }
+

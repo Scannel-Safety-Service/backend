@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -30,6 +31,7 @@ import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentQueryDto } from './dto/document-query.dto';
+import { ExportZipDto } from './dto/export-zip.dto';
 import { DocumentsService } from './documents.service';
 
 @ApiTags('documents')
@@ -71,6 +73,24 @@ export class DocumentsController {
       message: 'Standard document assigned successfully',
       data: document,
     };
+  }
+
+  @Post('export-zip')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
+  @ApiOperation({
+    summary: 'Stream folder documents compressed as a ZIP archive (auto-scoped)',
+  })
+  async exportZip(
+    @Body() exportZipDto: ExportZipDto,
+    @CurrentUser() caller: AuthenticatedUser,
+  ): Promise<StreamableFile> {
+    const { stream, filename } =
+      await this.documentsService.generateFolderZipStream(exportZipDto, caller);
+
+    return new StreamableFile(stream, {
+      type: 'application/zip',
+      disposition: `attachment; filename="${encodeURIComponent(filename)}"`,
+    });
   }
 
   @Get()
@@ -147,6 +167,8 @@ export class DocumentsController {
       }
     });
   }
+
+
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)

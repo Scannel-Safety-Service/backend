@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -26,6 +27,8 @@ import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
@@ -154,6 +157,18 @@ export class AuthService {
       }
 
       const createdUser = await this.authRepository.createUser(userCreateInput);
+
+      // Automatically send welcome email to the newly registered user
+      try {
+        this.mailerService
+          .sendWelcomeInvitationEmail(createdUser.email, createdUser.name)
+          .catch((err) => {
+            this.logger.error(`Failed to auto-send welcome email to ${createdUser.email}:`, err);
+          });
+      } catch (emailErr) {
+        this.logger.error(`Error preparing welcome email for ${createdUser.email}:`, emailErr);
+      }
+
       const { passwordHash: _, ...result } = createdUser;
       return result;
     } catch (error: any) {

@@ -209,8 +209,7 @@ export class UsersService {
       );
     }
 
-    const token = await this.authService.generateInvitationToken(user.id);
-    await this.mailerService.sendWelcomeInvitationEmail(user.email, token);
+    await this.mailerService.sendWelcomeInvitationEmail(user.email, user.name);
   }
 
   async issueToClient(id: string): Promise<void> {

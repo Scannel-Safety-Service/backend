@@ -6,11 +6,14 @@ import {
 } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
+import { PassThrough } from 'stream';
+import { ZipArchive } from 'archiver';
 import { Prisma, Document, DocumentSection } from '@prisma/client';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { AssignStandardDocumentDto } from './dto/assign-standard-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentQueryDto, DocumentScope } from './dto/document-query.dto';
+import { ExportZipDto } from './dto/export-zip.dto';
 import { DocumentsRepository } from './documents.repository';
 import { StorageService } from '../../shared/storage/storage.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -201,6 +204,10 @@ export class DocumentsService {
 
     if (queryDto.categoryId) {
       where.categoryId = queryDto.categoryId;
+    }
+
+    if (queryDto.individualId) {
+      where.individualId = queryDto.individualId;
     }
 
     if (queryDto.userId) {
@@ -922,6 +929,121 @@ export class DocumentsService {
     }
 
     return filePath;
+  }
+
+  async generateFolderZipStream(
+    dto: ExportZipDto,
+    caller: AuthenticatedUser,
+  ): Promise<{ stream: PassThrough; filename: string }> {
+    const where: Prisma.DocumentWhereInput = {
+      isDeleted: false,
+    };
+
+    if (caller.role !== Role.SUPER_ADMIN) {
+      if (!caller.companyId) {
+        throw new BadRequestException('User company not found');
+      }
+      where.companyId = caller.companyId;
+    }
+
+    if (dto.documentIds && dto.documentIds.length > 0) {
+      where.id = { in: dto.documentIds };
+    } else {
+      if (dto.section) {
+        where.section = dto.section;
+      }
+      if (dto.categoryId) {
+        where.categoryId = dto.categoryId;
+      }
+    }
+
+    if (
+      caller.role !== Role.SUPER_ADMIN &&
+      caller.role !== Role.COMPANY_ADMIN
+    ) {
+      where.OR = [
+        { userId: caller.userId },
+        { userId: null, categoryId: null },
+        {
+          category: {
+            OR: [
+              { assignToAll: true },
+              { assignments: { some: { userId: caller.userId } } },
+            ],
+          },
+        },
+      ];
+    }
+
+    const documents = await this.prismaService.client.document.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (documents.length === 0) {
+      throw new NotFoundException('No accessible documents found to export');
+    }
+
+    const rawFolderName = dto.folderName || 'Documents';
+    const cleanFolderName = rawFolderName.replace(/[^a-zA-Z0-9-_]/g, '_');
+    const zipFileName = `${cleanFolderName}_Documents.zip`;
+
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    const passThrough = new PassThrough();
+
+    // Propagate archive errors to the PassThrough so the HTTP response fails properly
+    archive.on('error', (err: any) => {
+      console.error('[DocumentsService] Zip archive error:', err);
+      passThrough.destroy(err);
+    });
+
+    archive.pipe(passThrough);
+
+    const usedFileNames = new Set<string>();
+    let filesAdded = 0;
+
+    for (const doc of documents) {
+      if (!doc.fileUrl) continue;
+
+      // Preserve the real file extension from originalFileName (could be .pdf, .jpg, .png, .docx, etc.)
+      const rawFileName = doc.originalFileName || `${doc.title || 'document'}.pdf`;
+      const originalExt = path.extname(rawFileName) || '.pdf';
+      const baseName = path.basename(rawFileName, originalExt);
+      let cleanName = `${baseName.replace(/[^a-zA-Z0-9._\-\s]/g, '_')}${originalExt}`;
+
+      // Deduplicate filenames within the archive
+      let finalFileName = cleanName;
+      let counter = 1;
+      while (usedFileNames.has(finalFileName)) {
+        finalFileName = `${path.basename(cleanName, originalExt)} (${counter})${originalExt}`;
+        counter++;
+      }
+      usedFileNames.add(finalFileName);
+
+      const storageFileName = path.basename(doc.fileUrl);
+      const filePath = path.join(process.cwd(), 'uploads', storageFileName);
+
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: finalFileName });
+        filesAdded++;
+        console.log(`[DocumentsService] Added to ZIP: ${finalFileName}`);
+      } else {
+        console.warn(
+          `[DocumentsService] Physical file missing for ZIP inclusion: ${filePath}`,
+        );
+      }
+    }
+
+    if (filesAdded === 0) {
+      passThrough.destroy();
+      throw new NotFoundException(
+        'None of the document files were found on the server storage. They may have been deleted.',
+      );
+    }
+
+    archive.finalize();
+
+    return { stream: passThrough, filename: zipFileName };
   }
 
   private deriveDefaultScope(queryDto: DocumentQueryDto): DocumentScope {
