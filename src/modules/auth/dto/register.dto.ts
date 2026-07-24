@@ -28,15 +28,10 @@ export class RegisterDto {
   @MinLength(8)
   password?: string;
 
-  @ApiProperty({ example: 'John', description: 'User first name' })
+  @ApiProperty({ example: 'John Doe', description: 'User name' })
   @IsString()
   @IsNotEmpty()
-  firstName!: string;
-
-  @ApiProperty({ example: 'Doe', description: 'User last name' })
-  @IsString()
-  @IsNotEmpty()
-  lastName!: string;
+  name!: string;
 
   @ApiProperty({
     enum: Role,

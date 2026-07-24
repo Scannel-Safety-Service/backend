@@ -103,11 +103,34 @@ export class IndividualsController {
     };
   }
 
+  @Get(':id/linked-documents')
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN, Role.COMPANY_USER)
+  @ApiOperation({ summary: 'Get list of documents linked to an individual' })
+  async getLinkedDocuments(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const result = await this.individualsService.getLinkedDocuments(id, user);
+    return {
+      message: 'Linked documents retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
+  @ApiOperation({ summary: 'Soft delete an individual (sets isDeleted to true)' })
+  @ApiResponse({ status: 204, description: 'Individual soft deleted' })
+  async deleteIndividual(@Param('id') id: string) {
+    await this.individualsService.permanentDelete(id);
+  }
+
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(Role.SUPER_ADMIN, Role.COMPANY_ADMIN)
   @ApiOperation({
-    summary: 'Soft-permanently delete an individual (sets isDeleted to true — stays in DB, hidden from UI forever). Must be archived first.',
+    summary: 'Soft-permanently delete an individual (sets isDeleted to true — stays in DB, hidden from UI forever).',
   })
   @ApiResponse({ status: 204, description: 'Individual soft-permanently deleted' })
   async permanentDelete(@Param('id') id: string) {

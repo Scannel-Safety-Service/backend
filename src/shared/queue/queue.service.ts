@@ -309,16 +309,16 @@ export class QueueService {
    *
    * Template:
    *   Title: "[Reminder] {reminderTitle}"
-   *   Body:  "Hi {firstName},\nThis is just a reminder that you have {title} training on {trainingDate}.\n\nThanks,\nSafety Tracker Pro"
+   *   Body:  "Hi {name},\nThis is just a reminder that you have {title} training on {trainingDate}.\n\nThanks,\nSafety Tracker Pro"
    */
   private buildNotificationPayload(reminder: {
     title: string;
-    dueDate: Date;
+    trainingDate: Date;
     reminderDate?: Date | null;
-    user?: { firstName: string; lastName: string } | null;
+    user?: { name: string } | null;
   }): { title: string; body: string } {
-    const firstName = reminder.user?.firstName ?? 'Team Member';
-    const trainingDate = (reminder.reminderDate ?? reminder.dueDate).toLocaleDateString('en-IE', {
+    const name = reminder.user?.name ?? 'Team Member';
+    const trainingDate = reminder.trainingDate.toLocaleDateString('en-IE', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -327,7 +327,7 @@ export class QueueService {
 
     return {
       title: `Reminder: ${reminder.title}`,
-      body: `Hi ${firstName},\n\nThis is just a reminder that you have ${reminder.title} training on ${trainingDate}.\n\nThanks,\nSafety Tracker Pro`,
+      body: `Hi ${name},\n\nThis is just a reminder that you have ${reminder.title} training on ${trainingDate}.\n\nThanks,\nSafety Tracker Pro`,
     };
   }
 }

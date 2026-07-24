@@ -27,6 +27,8 @@ model Company {
   assets      Asset[]
   projects    Project[]
   folders     Folder[]
+
+  @@index([isDeleted, archivedAt])
 }
 
 model User {
@@ -34,8 +36,7 @@ model User {
   email        String    @unique
   userCode     String?   @unique
   passwordHash String
-  firstName    String
-  lastName     String
+  name         String
   role         Role
   isActive     Boolean   @default(true)
   archivedAt   DateTime?
@@ -193,12 +194,16 @@ model Document {
   folderId  String?
   folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
+  individualId String?
+  individual   Individual? @relation(fields: [individualId], references: [id], onDelete: SetNull)
+
   @@index([companyId])
   @@index([userId])
   @@index([categoryId])
   @@index([assetId])
   @@index([projectId])
   @@index([folderId])
+  @@index([individualId])
 }
 
 model StandardDocument {
@@ -224,34 +229,31 @@ model Individual {
   isDeleted  Boolean    @default(false)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  reminders  Reminder[]
+  documents  Document[]
 
   @@index([companyId])
   @@index([userId])
 }
 
 model Reminder {
-  id           String      @id @default(uuid())
+  id           String    @id @default(uuid())
   companyId    String
-  company      Company     @relation(fields: [companyId], references: [id])
+  company      Company   @relation(fields: [companyId], references: [id])
   userId       String?
-  user         User?       @relation(fields: [userId], references: [id])
-  individualId String?
-  individual   Individual? @relation(fields: [individualId], references: [id])
+  user         User?     @relation(fields: [userId], references: [id])
   title        String
-  dueDate      DateTime
+  trainingDate DateTime
   reminderDate DateTime?
   completedAt  DateTime?
   archivedAt   DateTime?
-  isDeleted    Boolean     @default(false)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  isDeleted    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   notifications ReminderNotification[]
 
   @@index([companyId])
   @@index([userId])
-  @@index([individualId])
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +277,7 @@ model ReminderNotification {
   reminder      Reminder                   @relation(fields: [reminderId], references: [id], onDelete: Cascade)
 
   status        ReminderNotificationStatus @default(PENDING)
-  scheduledAt   DateTime                   // When this notification should fire (reminderDate ?? dueDate)
+  scheduledAt   DateTime                   // When this notification should fire (reminderDate ?? trainingDate)
   sentAt        DateTime?                  // Timestamp of successful OneSignal delivery
   lastAttemptAt DateTime?                  // Timestamp of most recent attempt (success or failure)
   nextRetryAt   DateTime?                  // Earliest time the next retry may be attempted

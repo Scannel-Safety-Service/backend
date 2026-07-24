@@ -7,6 +7,7 @@ import {
 import { Prisma, User, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { formatUserCode } from '../../shared/utils/user-code.util';
+import { encryptPassword, decryptPassword } from '../../shared/utils/crypto.util';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UsersRepository } from './users.repository';
@@ -25,10 +26,7 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {};
 
     if (queryDto.name) {
-      where.OR = [
-        { firstName: { contains: queryDto.name, mode: 'insensitive' } },
-        { lastName: { contains: queryDto.name, mode: 'insensitive' } },
-      ];
+      where.name = { contains: queryDto.name, mode: 'insensitive' };
     }
 
     if (queryDto.email) {
@@ -40,9 +38,20 @@ export class UsersService {
     }
 
     if (queryDto.archived === 'true') {
-      where.archivedAt = { not: null };
+      where.OR = [
+        { archivedAt: { not: null } },
+        { company: { archivedAt: { not: null } } },
+      ];
     } else if (queryDto.archived === 'false' || !queryDto.archived) {
       where.archivedAt = null;
+      where.AND = [
+        {
+          OR: [
+            { companyId: null },
+            { company: { archivedAt: null } },
+          ],
+        },
+      ];
     }
     // Permanently soft-deleted records are NEVER visible via API
     where.isDeleted = false;
@@ -97,8 +106,7 @@ export class UsersService {
     }
 
     const updateData: Prisma.UserUpdateInput = {};
-    if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
-    if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.name !== undefined) updateData.name = dto.name;
     if (user.role === Role.COMPANY_ADMIN) {
       updateData.userCode = null;
     } else if (dto.userCode !== undefined) {
@@ -121,7 +129,7 @@ export class UsersService {
     }
 
     if (dto.password !== undefined && dto.password !== '') {
-      updateData.passwordHash = await bcrypt.hash(dto.password, 12);
+      updateData.passwordHash = encryptPassword(dto.password);
     }
 
     try {
@@ -152,7 +160,20 @@ export class UsersService {
   }
 
   async restore(id: string): Promise<Omit<User, 'passwordHash'>> {
-    const user = await this.findOne(id);
+    const user = await this.usersRepository.findByIdWithCompany(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.isDeleted) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.company && user.company.archivedAt !== null) {
+      throw new BadRequestException(
+        'Cannot restore user while their company is archived. Please restore the company first.',
+      );
+    }
+
     if (user.archivedAt === null) {
       throw new BadRequestException('User is not archived');
     }
@@ -188,8 +209,7 @@ export class UsersService {
       );
     }
 
-    const token = await this.authService.generateInvitationToken(user.id);
-    await this.mailerService.sendWelcomeInvitationEmail(user.email, token);
+    await this.mailerService.sendWelcomeInvitationEmail(user.email, user.name);
   }
 
   async issueToClient(id: string): Promise<void> {
@@ -201,6 +221,7 @@ export class UsersService {
       throw new BadRequestException('Cannot send credentials to an archived user');
     }
 
-    await this.mailerService.sendIssueToClientEmail(user, user.company);
+    const decryptedPassword = decryptPassword(user.passwordHash);
+    await this.mailerService.sendIssueToClientEmail(user, user.company, decryptedPassword || undefined);
   }
 }

@@ -23,7 +23,7 @@ export class RemindersRepository {
         where,
         skip,
         take,
-        orderBy: { dueDate: 'asc' },
+        orderBy: { trainingDate: 'asc' },
       }),
       this.client.reminder.count({ where }),
     ]) as any);

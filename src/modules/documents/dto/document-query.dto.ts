@@ -41,6 +41,11 @@ export class DocumentQueryDto {
   @IsOptional()
   categoryId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter documents by individual ID' })
+  @IsUUID()
+  @IsOptional()
+  individualId?: string;
+
   @ApiPropertyOptional({ description: 'Filter documents by scoped user ID' })
   @IsUUID()
   @IsOptional()

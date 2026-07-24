@@ -38,6 +38,12 @@ export class UpdateDocumentDto {
   @IsOptional()
   isReviewed?: boolean;
 
+  @ApiPropertyOptional({ description: 'Optional individual ID for Training Qualifications documents' })
+  @Transform(({ value }) => (value === 'null' || value === 'undefined' || value === '' ? null : value))
+  @IsUUID()
+  @IsOptional()
+  individualId?: string | null;
+
   @ApiPropertyOptional({
     type: 'string',
     format: 'binary',

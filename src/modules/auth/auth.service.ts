@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Role } from '../../common/enums/role.enum';
 import { hashToken } from '../../shared/utils/hash.util';
+import { encryptPassword, decryptPassword } from '../../shared/utils/crypto.util';
 import { formatUserCode } from '../../shared/utils/user-code.util';
 import { MailerService } from '../../shared/mailer/mailer.service';
 import { AuthRepository } from './auth.repository';
@@ -25,6 +27,8 @@ import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
@@ -88,10 +92,10 @@ export class AuthService {
     let isActive = true;
 
     if (dto.password) {
-      passwordHash = await bcrypt.hash(dto.password, 12);
+      passwordHash = encryptPassword(dto.password);
     } else {
       const randomPassword = randomBytes(32).toString('hex');
-      passwordHash = await bcrypt.hash(randomPassword, 12);
+      passwordHash = encryptPassword(randomPassword);
       isActive = false;
     }
 
@@ -142,8 +146,7 @@ export class AuthService {
       const userCreateInput: any = {
         email: dto.email,
         passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
+        name: dto.name,
         role: dto.role,
         userCode: formatUserCode(userCodeToUse),
         isActive,
@@ -154,6 +157,18 @@ export class AuthService {
       }
 
       const createdUser = await this.authRepository.createUser(userCreateInput);
+
+      // Automatically send welcome email to the newly registered user
+      try {
+        this.mailerService
+          .sendWelcomeInvitationEmail(createdUser.email, createdUser.name)
+          .catch((err) => {
+            this.logger.error(`Failed to auto-send welcome email to ${createdUser.email}:`, err);
+          });
+      } catch (emailErr) {
+        this.logger.error(`Error preparing welcome email for ${createdUser.email}:`, emailErr);
+      }
+
       const { passwordHash: _, ...result } = createdUser;
       return result;
     } catch (error: any) {
@@ -179,14 +194,27 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
-    if (user.company && user.company.isDeleted) {
-      throw new UnauthorizedException('Company has been deleted');
+    if (user.company) {
+      if (user.company.isDeleted) {
+        throw new UnauthorizedException('Company has been deleted');
+      }
+      if (user.company.archivedAt !== null) {
+        throw new UnauthorizedException(
+          'Company is archived and paused. Please contact Super Admin.',
+        );
+      }
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      dto.password,
-      user.passwordHash,
-    );
+    let isPasswordValid = false;
+    const decryptedPassword = decryptPassword(user.passwordHash);
+    if (decryptedPassword !== null) {
+      isPasswordValid = (decryptedPassword === dto.password);
+    } else {
+      isPasswordValid = await bcrypt.compare(
+        dto.password,
+        user.passwordHash,
+      );
+    }
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -253,8 +281,15 @@ export class AuthService {
       throw new UnauthorizedException('Account is inactive or archived');
     }
 
-    if (user.company && user.company.isDeleted) {
-      throw new UnauthorizedException('Company has been deleted');
+    if (user.company) {
+      if (user.company.isDeleted) {
+        throw new UnauthorizedException('Company has been deleted');
+      }
+      if (user.company.archivedAt !== null) {
+        throw new UnauthorizedException(
+          'Company is archived and paused. Please contact Super Admin.',
+        );
+      }
     }
 
     await this.authRepository.revokeRefreshToken(hashed);
@@ -309,7 +344,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired password reset token');
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    const passwordHash = encryptPassword(dto.newPassword);
     await this.authRepository.updateUserPassword(
       resetToken.userId,
       passwordHash,
@@ -346,7 +381,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired invitation token');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = encryptPassword(dto.password);
 
     await Promise.all([
       this.authRepository.updateUser(inviteToken.userId, {
@@ -376,10 +411,17 @@ export class AuthService {
       );
     }
 
-    if (targetUser.company && targetUser.company.isDeleted) {
-      throw new BadRequestException(
-        'Cannot impersonate user of a deleted company',
-      );
+    if (targetUser.company) {
+      if (targetUser.company.isDeleted) {
+        throw new BadRequestException(
+          'Cannot impersonate user of a deleted company',
+        );
+      }
+      if (targetUser.company.archivedAt !== null) {
+        throw new BadRequestException(
+          'Cannot impersonate user of an archived company',
+        );
+      }
     }
 
     const admin = await this.authRepository.findUserById(adminId);
@@ -394,8 +436,7 @@ export class AuthService {
       role: targetUser.role,
       aud: 'web' as const,      // Required: JWT access strategy validates audience: 'web'
       impersonatedBy: admin.id,
-      firstName: targetUser.firstName,
-      lastName: targetUser.lastName,
+      name: targetUser.name,
       userCode: targetUser.userCode,
       companyName: targetUser.company?.name || null,
     };
@@ -459,8 +500,7 @@ export class AuthService {
       role,
       aud: clientType,   // Channel audience — 'web' or 'mobile'
       impersonatedBy,
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
+      name: user?.name || '',
       userCode: user?.userCode || null,
       companyName: user?.company?.name || null,
     };
@@ -470,8 +510,7 @@ export class AuthService {
       companyId,
       role,
       aud: clientType,   // Channel audience — mirrors access token
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
+      name: user?.name || '',
       userCode: user?.userCode || null,
       companyName: user?.company?.name || null,
     };

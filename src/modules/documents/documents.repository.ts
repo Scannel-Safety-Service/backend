@@ -7,8 +7,9 @@ import { TenantPrismaService } from '../../prisma/tenant-prisma.service';
 export type EnrichedDocument = Document & {
   project: { id: string; name: string; year: number } | null;
   folder: { id: string; name: string } | null;
-  user: { id: string; firstName: string; lastName: string } | null;
+  user: { id: string; name: string } | null;
   category: { id: string; name: string } | null;
+  individual: { id: string; name: string } | null;
 };
 
 // Prisma include shape reused for all enriched queries
@@ -20,9 +21,12 @@ const DOCUMENT_INCLUDE = {
     select: { id: true, name: true },
   },
   user: {
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, name: true },
   },
   category: {
+    select: { id: true, name: true },
+  },
+  individual: {
     select: { id: true, name: true },
   },
 } satisfies Prisma.DocumentInclude;
@@ -87,8 +91,12 @@ export class DocumentsRepository {
           fileUrl: true,
           section: true,
           createdAt: true,
+          individualId: true,
+          individual: {
+            select: { id: true, name: true },
+          },
           user: {
-            select: { id: true, firstName: true, lastName: true },
+            select: { id: true, name: true },
           },
         },
       }),

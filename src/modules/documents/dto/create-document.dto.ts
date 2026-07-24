@@ -40,6 +40,12 @@ export class CreateDocumentDto {
   @IsOptional()
   companyId?: string;
 
+  @ApiPropertyOptional({ description: 'Optional individual ID for Training Qualifications documents' })
+  @Transform(({ value }) => (value === 'null' || value === 'undefined' || value === '' ? null : value))
+  @IsUUID()
+  @IsOptional()
+  individualId?: string;
+
   @ApiPropertyOptional({
     type: 'string',
     format: 'binary',

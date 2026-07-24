@@ -22,8 +22,7 @@ export class UsersRepository {
       id: true,
       email: true,
       userCode: true,
-      firstName: true,
-      lastName: true,
+      name: true,
       role: true,
       isActive: true,
       archivedAt: true,
@@ -34,6 +33,7 @@ export class UsersRepository {
         select: {
           id: true,
           name: true,
+          archivedAt: true,
         },
       },
     };

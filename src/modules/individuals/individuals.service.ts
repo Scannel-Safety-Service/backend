@@ -112,19 +112,64 @@ export class IndividualsService {
     });
   }
 
+  async getLinkedDocuments(
+    id: string,
+    caller: AuthenticatedUser,
+  ): Promise<{ items: any[]; total: number }> {
+    await this.findOne(id);
+
+    const [items, total] = await this.prismaService.client.$transaction([
+      this.prismaService.client.document.findMany({
+        where: {
+          individualId: id,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          title: true,
+          originalFileName: true,
+          archivedAt: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 50,
+      }),
+      this.prismaService.client.document.count({
+        where: {
+          individualId: id,
+          isDeleted: false,
+        },
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
+  }
+
   /**
-   * Soft permanent delete — sets isDeleted to true.
+   * Soft permanent delete — sets isDeleted to true on individual AND linked documents.
    * Record is permanently hidden from the UI but remains in the database forever.
-   * Requires the individual to be archived first.
    */
   async permanentDelete(id: string): Promise<void> {
-    const individual = await this.findOne(id);
-    if (individual.archivedAt === null) {
-      throw new BadRequestException(
-        'Individual must be archived before permanent deletion',
-      );
-    }
+    await this.findOne(id);
     await this.repository.update(id, { isDeleted: true });
+    await this.prismaService.client.document.updateMany({
+      where: {
+        individualId: id,
+        isDeleted: false,
+      },
+      data: {
+        isDeleted: true,
+      },
+    });
   }
 
 

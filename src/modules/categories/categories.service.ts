@@ -276,6 +276,7 @@ export class CategoriesService {
       this.prismaService.client.document.findMany({
         where: {
           categoryId: id,
+          isDeleted: false,
         },
         select: {
           id: true,
@@ -296,6 +297,7 @@ export class CategoriesService {
       this.prismaService.client.document.count({
         where: {
           categoryId: id,
+          isDeleted: false,
         },
       }),
     ]);
@@ -309,7 +311,7 @@ export class CategoriesService {
   /**
    * Soft permanent delete — sets isDeleted to true.
    * Record is permanently hidden from the UI but remains in the database forever.
-   * Requires the category to be archived first.
+   * Also soft-deletes all linked documents by setting isDeleted to true.
    */
   async permanentDelete(id: string, user: AuthenticatedUser): Promise<void> {
     const category = await this.findOne(id);
@@ -318,11 +320,15 @@ export class CategoriesService {
         'Only Super Admins can permanently delete global categories',
       );
     }
-    if (category.archivedAt === null) {
-      throw new BadRequestException(
-        'Category must be archived before permanent deletion',
-      );
-    }
     await this.categoriesRepository.update(id, { isDeleted: true });
+    await this.prismaService.client.document.updateMany({
+      where: {
+        categoryId: id,
+        isDeleted: false,
+      },
+      data: {
+        isDeleted: true,
+      },
+    });
   }
 }

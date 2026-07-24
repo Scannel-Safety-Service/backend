@@ -3,13 +3,14 @@ import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { encryptPassword } from '../src/shared/utils/crypto.util';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg(new Pool({ connectionString: process.env.DATABASE_URL })),
 });
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 12);
+  const passwordHash = encryptPassword('password123');
 
   console.log('Seed: Cleaning database...');
   await prisma.impersonationLog.deleteMany({});
@@ -52,8 +53,7 @@ async function main() {
     // Super Admins (no companyId)
     {
       email: 'superadmin@scannel.com',
-      firstName: 'Super',
-      lastName: 'Admin',
+      name: 'Super Admin',
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
@@ -61,8 +61,7 @@ async function main() {
     },
     {
       email: 'system@scannel.com',
-      firstName: 'System',
-      lastName: 'Administrator',
+      name: 'System Administrator',
       role: Role.SUPER_ADMIN,
       isActive: true,
       companyName: null,
@@ -71,8 +70,7 @@ async function main() {
     // Acme Corporation
     {
       email: 'admin@acme.com',
-      firstName: 'Alice',
-      lastName: 'Smith',
+      name: 'Alice Smith',
       role: Role.COMPANY_ADMIN,
       isActive: true,
       companyName: 'Acme Corporation',
@@ -80,8 +78,7 @@ async function main() {
     },
     {
       email: 'user1@acme.com',
-      firstName: 'Bob',
-      lastName: 'Jones',
+      name: 'Bob Jones',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Acme Corporation',
@@ -89,8 +86,7 @@ async function main() {
     },
     {
       email: 'app1@acme.com',
-      firstName: 'Charlie',
-      lastName: 'Brown',
+      name: 'Charlie Brown',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Acme Corporation',
@@ -98,8 +94,7 @@ async function main() {
     },
     {
       email: 'app2@acme.com',
-      firstName: 'Diana',
-      lastName: 'Prince',
+      name: 'Diana Prince',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Acme Corporation',
@@ -108,8 +103,7 @@ async function main() {
     // Globex Corporation
     {
       email: 'admin@globex.com',
-      firstName: 'Hank',
-      lastName: 'Scorpio',
+      name: 'Hank Scorpio',
       role: Role.COMPANY_ADMIN,
       isActive: true,
       companyName: 'Globex Corporation',
@@ -117,8 +111,7 @@ async function main() {
     },
     {
       email: 'user1@globex.com',
-      firstName: 'Homer',
-      lastName: 'Simpson',
+      name: 'Homer Simpson',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Globex Corporation',
@@ -126,8 +119,7 @@ async function main() {
     },
     {
       email: 'app1@globex.com',
-      firstName: 'Marge',
-      lastName: 'Simpson',
+      name: 'Marge Simpson',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Globex Corporation',
@@ -136,8 +128,7 @@ async function main() {
     // Initech
     {
       email: 'admin@initech.com',
-      firstName: 'Bill',
-      lastName: 'Lumbergh',
+      name: 'Bill Lumbergh',
       role: Role.COMPANY_ADMIN,
       isActive: true,
       companyName: 'Initech',
@@ -145,8 +136,7 @@ async function main() {
     },
     {
       email: 'app1@initech.com',
-      firstName: 'Peter',
-      lastName: 'Gibbons',
+      name: 'Peter Gibbons',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Initech',
@@ -155,8 +145,7 @@ async function main() {
     // Umbrella Corporation
     {
       email: 'admin@umbrella.com',
-      firstName: 'Albert',
-      lastName: 'Wesker',
+      name: 'Albert Wesker',
       role: Role.COMPANY_ADMIN,
       isActive: true,
       companyName: 'Umbrella Corporation',
@@ -164,8 +153,7 @@ async function main() {
     },
     {
       email: 'app1@umbrella.com',
-      firstName: 'Alice',
-      lastName: 'Abernathy',
+      name: 'Alice Abernathy',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Umbrella Corporation',
@@ -174,8 +162,7 @@ async function main() {
     // Hooli
     {
       email: 'admin@hooli.com',
-      firstName: 'Gavin',
-      lastName: 'Belson',
+      name: 'Gavin Belson',
       role: Role.COMPANY_ADMIN,
       isActive: true,
       companyName: 'Hooli',
@@ -183,8 +170,7 @@ async function main() {
     },
     {
       email: 'app1@hooli.com',
-      firstName: 'Richard',
-      lastName: 'Hendricks',
+      name: 'Richard Hendricks',
       role: Role.COMPANY_USER,
       isActive: true,
       companyName: 'Hooli',
@@ -197,8 +183,7 @@ async function main() {
     const user = await prisma.user.create({
       data: {
         email: u.email,
-        firstName: u.firstName,
-        lastName: u.lastName,
+        name: u.name,
         passwordHash,
         role: u.role,
         isActive: u.isActive,
