@@ -14,10 +14,10 @@ export class UpdateReminderDto {
   @IsOptional()
   title?: string;
 
-  @ApiPropertyOptional({ description: 'The due date for the reminder alert' })
+  @ApiPropertyOptional({ description: 'The training date for the reminder alert' })
   @IsDateString()
   @IsOptional()
-  dueDate?: string;
+  trainingDate?: string;
 
   @ApiPropertyOptional({ description: 'The reminder date for the alert' })
   @IsDateString()

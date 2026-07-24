@@ -71,7 +71,7 @@ export class ReminderSchedulerService implements OnModuleInit {
         },
         select: {
           id: true,
-          dueDate: true,
+          trainingDate: true,
           reminderDate: true,
         },
       });
@@ -87,7 +87,7 @@ export class ReminderSchedulerService implements OnModuleInit {
       // Create PENDING notification records for all these reminders
       await this.prisma.reminderNotification.createMany({
         data: activeRemindersWithoutNotifications.map((reminder) => {
-          const scheduledAt = reminder.reminderDate ?? reminder.dueDate;
+          const scheduledAt = reminder.reminderDate ?? reminder.trainingDate;
           return {
             reminderId: reminder.id,
             scheduledAt,

@@ -313,12 +313,12 @@ export class QueueService {
    */
   private buildNotificationPayload(reminder: {
     title: string;
-    dueDate: Date;
+    trainingDate: Date;
     reminderDate?: Date | null;
     user?: { name: string } | null;
   }): { title: string; body: string } {
     const name = reminder.user?.name ?? 'Team Member';
-    const trainingDate = (reminder.reminderDate ?? reminder.dueDate).toLocaleDateString('en-IE', {
+    const trainingDate = reminder.trainingDate.toLocaleDateString('en-IE', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

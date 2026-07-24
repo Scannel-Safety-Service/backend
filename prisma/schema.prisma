@@ -242,7 +242,7 @@ model Reminder {
   userId       String?
   user         User?     @relation(fields: [userId], references: [id])
   title        String
-  dueDate      DateTime
+  trainingDate DateTime
   reminderDate DateTime?
   completedAt  DateTime?
   archivedAt   DateTime?
@@ -277,7 +277,7 @@ model ReminderNotification {
   reminder      Reminder                   @relation(fields: [reminderId], references: [id], onDelete: Cascade)
 
   status        ReminderNotificationStatus @default(PENDING)
-  scheduledAt   DateTime                   // When this notification should fire (reminderDate ?? dueDate)
+  scheduledAt   DateTime                   // When this notification should fire (reminderDate ?? trainingDate)
   sentAt        DateTime?                  // Timestamp of successful OneSignal delivery
   lastAttemptAt DateTime?                  // Timestamp of most recent attempt (success or failure)
   nextRetryAt   DateTime?                  // Earliest time the next retry may be attempted

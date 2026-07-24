@@ -26,7 +26,7 @@ export class RemindersService {
 
     const data: Prisma.ReminderCreateInput = {
       title: dto.title,
-      dueDate: new Date(dto.dueDate),
+      trainingDate: new Date(dto.trainingDate),
       reminderDate: dto.reminderDate ? new Date(dto.reminderDate) : null,
       company: { connect: { id: dto.companyId || '' } }, // Injected by TenantPrismaService or explicitly passed
     };
@@ -38,7 +38,7 @@ export class RemindersService {
     const reminder = await this.repository.create(data);
 
     // Auto-create the ReminderNotification dispatch record.
-    // scheduledAt = reminderDate if set, otherwise fall back to dueDate.
+    // scheduledAt = reminderDate if set, otherwise fall back to trainingDate.
     await this.scheduleNotification(reminder);
 
     return reminder;
@@ -106,7 +106,7 @@ export class RemindersService {
 
     const updateData: Prisma.ReminderUpdateInput = {};
     if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.dueDate !== undefined) updateData.dueDate = new Date(dto.dueDate);
+    if (dto.trainingDate !== undefined) updateData.trainingDate = new Date(dto.trainingDate);
     if (dto.reminderDate !== undefined) {
       updateData.reminderDate = dto.reminderDate ? new Date(dto.reminderDate) : null;
     }
@@ -123,7 +123,7 @@ export class RemindersService {
 
     // If the schedule dates changed, re-schedule the notification.
     const datesChanged =
-      dto.dueDate !== undefined || dto.reminderDate !== undefined;
+      dto.trainingDate !== undefined || dto.reminderDate !== undefined;
     if (datesChanged) {
       await this.rescheduleNotification(updated);
     }
@@ -170,7 +170,7 @@ export class RemindersService {
     }
     const restored = await this.repository.update(id, { archivedAt: null });
 
-    // Re-schedule notification if the reminderDate/dueDate is still in the future
+    // Re-schedule notification if the reminderDate/trainingDate is still in the future
     await this.rescheduleNotification(restored);
 
     return restored;
@@ -197,7 +197,7 @@ export class RemindersService {
    * request context during background operations.
    */
   private async scheduleNotification(reminder: Reminder): Promise<void> {
-    const scheduledAt = reminder.reminderDate ?? reminder.dueDate;
+    const scheduledAt = reminder.reminderDate ?? reminder.trainingDate;
 
     await this.prisma.reminderNotification.create({
       data: {
@@ -216,7 +216,7 @@ export class RemindersService {
    * a fresh one with the updated schedule.
    */
   private async rescheduleNotification(reminder: Reminder): Promise<void> {
-    const scheduledAt = reminder.reminderDate ?? reminder.dueDate;
+    const scheduledAt = reminder.reminderDate ?? reminder.trainingDate;
 
     // Cancel existing pending notifications for this reminder
     await this.prisma.reminderNotification.updateMany({
